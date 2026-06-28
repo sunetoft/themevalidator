@@ -3,9 +3,11 @@
 import { motion } from 'framer-motion'
 import {
   DollarSign, Activity, TrendingUp, TrendingDown,
-  ChevronUp, ChevronDown, Minus, Gauge
+  ChevronUp, ChevronDown, Minus, Gauge,
+  Target, CircleDollarSign, Loader2, Check
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 
 // ── Types ──
 
@@ -69,6 +71,74 @@ function getSignalIcon(signal?: string) {
   return <Minus className="w-3.5 h-3.5" />
 }
 
+// ── Sync action icon component ──
+
+type SyncTarget = 'tradescouter' | 'optionlookup'
+
+function SyncIcon({
+  ticker,
+  target,
+}: {
+  ticker: string
+  target: SyncTarget
+}) {
+  const [status, setStatus] = useState<'idle' | 'loading' | 'added' | 'error'>('idle')
+
+  const handleClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation() // don't toggle stock expansion
+    if (status === 'loading') return
+
+    setStatus('loading')
+    try {
+      const resp = await fetch(`/api/${target}/sync`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker: ticker.toUpperCase(), action: 'add' }),
+      })
+      const data = await resp.json()
+      if (data.success) {
+        setStatus('added')
+        toast.success(`${ticker} added to ${target === 'tradescouter' ? 'TradeScouter' : 'OptionLookup'}`)
+      } else {
+        setStatus('error')
+        toast.error(`Failed to add ${ticker}`)
+        setTimeout(() => setStatus('idle'), 2000)
+      }
+    } catch {
+      setStatus('error')
+      toast.error(`Failed to add ${ticker}`)
+      setTimeout(() => setStatus('idle'), 2000)
+    }
+  }, [ticker, target, status])
+
+  const isTS = target === 'tradescouter'
+  const label = isTS ? 'Add to TradeScouter' : 'Add to OptionLookup'
+  const activeColor = isTS ? 'text-cyan-400 hover:text-cyan-300' : 'text-emerald-400 hover:text-emerald-300'
+
+  return (
+    <button
+      onClick={handleClick}
+      title={label}
+      className={`p-1 rounded transition-colors ${
+        status === 'added'
+          ? 'text-success cursor-default'
+          : status === 'error'
+          ? 'text-destructive'
+          : `text-muted-foreground hover:bg-muted/50 ${status === 'idle' ? activeColor : ''}`
+      }`}
+      disabled={status === 'loading' || status === 'added'}
+    >
+      {status === 'loading' ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : status === 'added' ? (
+        <Check className="w-4 h-4" />
+      ) : (
+        isTS ? <Target className="w-4 h-4" /> : <CircleDollarSign className="w-4 h-4" />
+      )}
+    </button>
+  )
+}
+
 // ── Main Component ──
 
 export default function FinancialTechnicalSection({
@@ -80,6 +150,33 @@ export default function FinancialTechnicalSection({
 }) {
   const [activeTab, setActiveTab] = useState<'financial' | 'technical'>('financial')
   const [expandedStocks, setExpandedStocks] = useState<Set<string>>(new Set())
+
+  // Cross-site registration checks
+  const [tsRegistered, setTsRegistered] = useState(false)
+  const [olRegistered, setOlRegistered] = useState(false)
+  const [regChecked, setRegChecked] = useState(false)
+
+  useEffect(() => {
+    async function checkRegistrations() {
+      try {
+        const [tsResp, olResp] = await Promise.all([
+          fetch('/api/tradescouter/status'),
+          fetch('/api/optionlookup/status'),
+        ])
+        const [tsData, olData] = await Promise.all([
+          tsResp.json().catch(() => ({ registered: false })),
+          olResp.json().catch(() => ({ registered: false })),
+        ])
+        setTsRegistered(tsData.registered === true)
+        setOlRegistered(olData.registered === true)
+      } catch {
+        // both offline — leave as false
+      } finally {
+        setRegChecked(true)
+      }
+    }
+    checkRegistrations()
+  }, [])
 
   const hasFinancial = financialHealth && (financialHealth.perStock?.length ?? 0) > 0
   const hasTechnical = technicalAnalysis && (technicalAnalysis.perStock?.length ?? 0) > 0
@@ -100,6 +197,8 @@ export default function FinancialTechnicalSection({
   const realMetrics = activeTab === 'financial'
     ? financialHealth?.metrics ?? {}
     : technicalAnalysis?.indicators ?? {}
+
+  const showSyncIcons = regChecked && (tsRegistered || olRegistered)
 
   return (
     <motion.div
@@ -217,7 +316,7 @@ export default function FinancialTechnicalSection({
                   )}
                 </div>
 
-                {/* Real metrics badges */}
+                {/* Real metrics badges + sync icons + chevron */}
                 <div className="flex items-center gap-2">
                   {isFinancial && realData?.trailingPE && (
                     <span className="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
@@ -236,6 +335,19 @@ export default function FinancialTechnicalSection({
                       ${realData.currentPrice}
                     </span>
                   )}
+
+                  {/* Cross-site sync icons */}
+                  {showSyncIcons && (stock as PerStockFinancial | PerStockTechnical).ticker && (
+                    <div className="flex items-center gap-0.5 ml-1" onClick={e => e.stopPropagation()}>
+                      {tsRegistered && (
+                        <SyncIcon ticker={(stock as any).ticker!} target="tradescouter" />
+                      )}
+                      {olRegistered && (
+                        <SyncIcon ticker={(stock as any).ticker!} target="optionlookup" />
+                      )}
+                    </div>
+                  )}
+
                   {isExpanded ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                 </div>
               </button>
