@@ -211,7 +211,7 @@ export default function StrategiesPage() {
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <button
                             onClick={() => router.push(`/thesis/${group.id}/strategy?strategyId=${strategy.id}`)}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors opacity-0 group-hover/item:opacity-100"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors opacity-100 md:opacity-0 md:group-hover/item:opacity-100"
                             title="View strategy"
                           >
                             <Eye className="w-4 h-4" />
@@ -219,7 +219,7 @@ export default function StrategiesPage() {
                           <button
                             onClick={(e) => handleDelete(e, strategy.id)}
                             disabled={deletingId === strategy.id}
-                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover/item:opacity-100 disabled:opacity-50"
+                            className="p-1.5 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-100 md:opacity-0 md:group-hover/item:opacity-100 disabled:opacity-50"
                             title="Delete strategy"
                           >
                             {deletingId === strategy.id ? (
