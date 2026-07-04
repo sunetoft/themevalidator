@@ -20,7 +20,24 @@ export async function GET() {
     return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
   }
 
-  // All theses (for theme management)
+  // All themes with thesis counts
+  const themes = await prisma.theme.findMany({
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      isPublic: true,
+      publishedAt: true,
+      createdAt: true,
+      _count: {
+        select: { theses: true },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  })
+
+  // All theses (for detailed management)
   const theses = await prisma.thesis.findMany({
     select: {
       id: true,
@@ -31,6 +48,8 @@ export async function GET() {
       publishedAt: true,
       createdAt: true,
       userId: true,
+      themeId: true,
+      theme: { select: { id: true, name: true } },
       _count: {
         select: {
           paperTrades: { where: { status: 'active' } },
@@ -104,6 +123,7 @@ export async function GET() {
   })
 
   return NextResponse.json({
+    themes: JSON.parse(JSON.stringify(themes)),
     theses: JSON.parse(JSON.stringify(theses)),
     strategies: JSON.parse(JSON.stringify(strategies)),
     paperTrades: JSON.parse(JSON.stringify(paperTrades)),

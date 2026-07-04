@@ -16,6 +16,7 @@ You will receive REAL-TIME FINANCIAL DATA for basket tickers (P/E, PEG, revenue 
 Respond in JSON format with the following structure:
 {
   "title": "Short thesis title (max 8 words)",
+  "themeName": "Macro theme this thesis belongs to (e.g., 'AI Infrastructure', 'Nuclear Energy', 'Rare Earth Minerals', 'Defense Tech'). Keep it short (2-4 words). This groups related theses together.",
   "description": "2-3 sentence summary of the thesis",
   "sentiment": {
     "overall": "bullish|bearish|neutral",
@@ -387,11 +388,35 @@ export async function POST(request: NextRequest) {
             earningsMetrics[ticker] = { earnings: d.earnings, nextEarningsDate: d.nextEarningsDate }
           }
 
+          // Find or create a Theme for this thesis
+          let themeId: string | undefined
+          const themeName = (finalResult?.themeName ?? finalResult?.title ?? 'Untitled Theme') as string
+          const themeSlug = themeName.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '')
+            .slice(0, 80)
+          const existingTheme = await prisma.theme.findUnique({ where: { slug: themeSlug } })
+          if (existingTheme) {
+            themeId = existingTheme.id
+          } else {
+            const newTheme = await prisma.theme.create({
+              data: {
+                name: themeName,
+                slug: themeSlug,
+                description: finalResult?.description ?? '',
+                isPublic: true,
+                publishedAt: new Date(),
+              },
+            })
+            themeId = newTheme.id
+          }
+
           await prisma.thesis.update({
             where: { id: thesis.id },
             data: {
               title: finalResult?.title ?? 'Untitled Thesis',
               description: finalResult?.description ?? '',
+              themeId,
               overallScore: finalResult?.overallScore ?? null,
               sentimentScore: finalResult?.sentiment?.score ?? null,
               ecosystemScore: finalResult?.ecosystem?.score ?? null,

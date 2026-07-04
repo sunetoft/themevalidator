@@ -58,9 +58,20 @@ npx prisma migrate dev   # create migration
 npx prisma studio        # GUI browser
 ```
 
-**Models:** User, Account, Session, VerificationToken, Thesis, TradeStrategy,
+**Models:** User, Account, Session, VerificationToken, **Theme**, Thesis, TradeStrategy,
 PaperTrade, PaperOrder, PaperPosition, PaperTradeLog, PaperTradeSnapshot,
-ThemeMember, PasswordReset, Subscription, ThesisAlert
+ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAlert
+
+**Theme vs Thesis architecture:**
+- `Theme` = macro investment category (e.g., "AI Infrastructure Buildout") — the parent
+- `Thesis` = specific investment narrative within a theme (e.g., "CPO supply bottleneck")
+- `ThemeMember` = basket stocks on a specific Thesis (not on Theme directly)
+- `Theme.themes` → one-to-many → `Thesis`
+- `Thesis.themeId` → nullable FK → `Theme`
+- Public gallery at `/themes` shows published `Theme` cards with aggregated scores
+- Theme detail at `/themes/[id]` shows theme overview + expandable thesis analysis cards
+- `/thesis/[id]` remains the user's private authenticated thesis detail view
+- Analyze route auto-assigns theses to themes via LLM-suggested `themeName` (find-or-create by slug)
 
 ## Build & Deploy
 

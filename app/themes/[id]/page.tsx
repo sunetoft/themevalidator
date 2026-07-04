@@ -9,25 +9,51 @@ export default async function ThemeDetailPage({
 }: {
   params: { id: string };
 }) {
-  const thesis = await prisma.thesis.findFirst({
+  const theme = await prisma.theme.findFirst({
     where: { id: params.id, isPublic: true },
     select: {
       id: true,
-      title: true,
+      name: true,
+      slug: true,
       description: true,
-      overallScore: true,
-      sentimentScore: true,
-      ecosystemScore: true,
-      riskScore: true,
-      opportunityScore: true,
-      moatScore: true,
+      iconUrl: true,
       publishedAt: true,
+      theses: {
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          overallScore: true,
+          sentimentScore: true,
+          ecosystemScore: true,
+          riskScore: true,
+          opportunityScore: true,
+          moatScore: true,
+          status: true,
+          createdAt: true,
+        },
+        orderBy: { overallScore: "desc" },
+      },
     },
   });
 
-  if (!thesis) {
+  if (!theme) {
     notFound();
   }
 
-  return <ThemeDetailClient themeId={thesis.id} theme={JSON.parse(JSON.stringify(thesis))} />;
+  // Aggregate theme-level scores
+  const scores = theme.theses
+    .map((t) => t.overallScore)
+    .filter((s): s is number => s !== null);
+  const avgScore =
+    scores.length > 0
+      ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
+      : null;
+
+  const themeData = {
+    ...JSON.parse(JSON.stringify(theme)),
+    avgScore,
+  };
+
+  return <ThemeDetailClient themeId={theme.id} theme={themeData} />;
 }
