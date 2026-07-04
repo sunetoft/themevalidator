@@ -503,16 +503,26 @@ export default function ThesisDetailPage() {
                           )}
                         </div>
                       </div>
-                      {pick.catalysts.length > 0 && (
+                      {pick.catalysts.length > 0 ? (
                         <div className="mb-1">
                           <span className="text-xs text-muted-foreground">Catalysts: </span>
                           <span className="text-xs text-primary">{pick.catalysts.join(', ')}</span>
                         </div>
+                      ) : (
+                        <div className="mb-1">
+                          <span className="text-xs text-muted-foreground">Catalysts: </span>
+                          <span className="text-xs text-muted-foreground/60 italic">Awaiting analysis</span>
+                        </div>
                       )}
-                      {pick.risks.length > 0 && (
+                      {pick.risks.length > 0 ? (
                         <div>
                           <span className="text-xs text-muted-foreground">Risks: </span>
                           <span className="text-xs text-red-400">{pick.risks.join(', ')}</span>
+                        </div>
+                      ) : (
+                        <div>
+                          <span className="text-xs text-muted-foreground">Risks: </span>
+                          <span className="text-xs text-muted-foreground/60 italic">Awaiting analysis</span>
                         </div>
                       )}
                     </div>

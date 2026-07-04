@@ -22,7 +22,7 @@ Update the following analysis sections to incorporate the new stock. Keep all ex
 
 - "ecosystem": Add the new stock as a member if not already present. Update the ecosystem score if the new stock meaningfully changes ecosystem completeness.
 - "bottlenecks": Add the new ticker to affectedCompanies where relevant. Add new bottleneck items if the stock introduces new ones. Update score.
-- "valuation": Add the new stock to topPicks if it's investment-worthy. Update score.
+- "valuation": Add the new stock to topPicks with at least 2 catalysts and 2 risks. Ensure ALL ecosystem members have a topPicks entry. Update score.
 - "externalFactors": Add new factors if the stock introduces new risks or catalysts. Update score.
 - "sentiment": Update summary if the new stock shifts overall sentiment. Update score.
 - "overallScore": Recalculate as weighted average.

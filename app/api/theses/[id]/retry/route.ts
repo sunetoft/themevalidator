@@ -52,14 +52,14 @@ Respond in JSON format with the following structure:
   "valuation": {
     "score": 0-100,
     "topPicks": [
-      { "ticker": "TICK", "companyName": "Name", "moatStrength": "wide|narrow|none", "valuationGrade": "A|B|C|D|F", "catalysts": ["catalyst1"], "risks": ["risk1"] }
+      { "ticker": "TICK", "companyName": "Name", "moatStrength": "wide|narrow|none", "valuationGrade": "A|B|C|D|F", "catalysts": ["specific catalyst", "another catalyst"], "risks": ["specific risk", "another risk"] }
     ]
   },
   "overallScore": 0-100,
   "keyTakeaways": ["takeaway1", "takeaway2", "takeaway3"]
 }
 
-Provide at least 5-8 ecosystem members with real publicly traded companies when possible. Score each dimension 0-100 where higher is more favorable for investment. Respond with raw JSON only.`
+Provide at least 5-8 ecosystem members with real publicly traded companies when possible. Score each dimension 0-100 where higher is more favorable for investment. CRITICAL: valuation.topPicks MUST include an entry for EVERY stock ecosystem member, each with at least 2 specific catalysts and 2 specific risks. Respond with raw JSON only.`
 
 export async function POST(
   request: NextRequest,

@@ -113,8 +113,8 @@ Respond in JSON format with the following structure:
         "companyName": "Name",
         "moatStrength": "wide|narrow|none",
         "valuationGrade": "A|B|C|D|F",
-        "catalysts": ["catalyst1", "catalyst2"],
-        "risks": ["risk1", "risk2"]
+        "catalysts": ["specific catalyst for this stock", "another catalyst"],
+        "risks": ["specific risk for this stock", "another risk"]
       }
     ]
   },
@@ -130,6 +130,7 @@ INSTRUCTIONS:
 5. Score each dimension 0-100 where higher is more favorable for investment.
 6. The overallScore should be a weighted average favoring ecosystem completeness, moat strength, and financial health.
 7. Be honest about valuations — if a stock's PEG is > 2 or P/E is > 40 with slowing growth, note it as overvalued.
+8. CRITICAL: The valuation.topPicks array MUST include an entry for EVERY stock ecosystem member (not just a few favorites). Each entry MUST have at least 2 catalysts and 2 risks that are specific to that company and this thesis — not generic boilerplate.
 
 Respond with raw JSON only. Do not include code blocks, markdown, or any other formatting.`
 
