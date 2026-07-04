@@ -121,9 +121,35 @@ function parseStrategyToOrders(
     const stopMatch = strategyMarkdown.match(stopPattern);
     const tpMatch = strategyMarkdown.match(tpPattern);
 
-    const entryPrice = entryMatch ? parseFloat(entryMatch[1]) : price * 0.98;
-    const stopPrice = stopMatch ? parseFloat(stopMatch[1]) : price * 0.92;
-    const tpPrice = tpMatch ? parseFloat(tpMatch[1]) : price * 1.15;
+    // Validate regex-extracted prices against current market price.
+    // The LLM strategy text is narrative (percentages, tranche amounts, etc.)
+    // and the regex frequently matches the wrong number. Reject parsed values
+    // that are clearly wrong, falling back to percentage-based defaults.
+    let entryPrice = price * 0.98; // default: 2% below market
+    let stopPrice = price * 0.92;  // default: 8% below market
+    let tpPrice = price * 1.15;    // default: 15% above market
+
+    if (entryMatch) {
+      const parsed = parseFloat(entryMatch[1]);
+      // Entry must be within ±50% of current price (not a tranche amount or %)
+      if (parsed > price * 0.5 && parsed < price * 1.5) {
+        entryPrice = parsed;
+      }
+    }
+    if (stopMatch) {
+      const parsed = parseFloat(stopMatch[1]);
+      // Stop must be below entry and above 10% of current price
+      if (parsed < entryPrice && parsed > price * 0.1) {
+        stopPrice = parsed;
+      }
+    }
+    if (tpMatch) {
+      const parsed = parseFloat(tpMatch[1]);
+      // TP must be above entry and below 3x current price
+      if (parsed > entryPrice && parsed < price * 3) {
+        tpPrice = parsed;
+      }
+    }
 
     const quantity = perStock / entryPrice;
 
@@ -306,6 +332,34 @@ export async function checkAndExecuteOrders(paperTradeId?: string) {
         }
 
         if (shouldFill) {
+          // Update position
+          const existingPos = trade.positions.find(
+            (p: any) => p.ticker === order.ticker
+          );
+
+          // CRITICAL: Sells must NOT execute without a position.
+          // Without this guard, phantom sells create money from nothing.
+          if (order.side === "sell" && !existingPos) {
+            // Cancel the sell order — nothing to sell
+            await prisma.paperOrder.update({
+              where: { id: order.id },
+              data: {
+                status: "cancelled",
+                notes: `Auto-cancelled: no position held for ${order.ticker}`,
+              },
+            });
+
+            await prisma.paperTradeLog.create({
+              data: {
+                paperTradeId: trade.id,
+                action: "order_cancelled",
+                ticker: order.ticker,
+                details: `${order.side.toUpperCase()} ${order.quantity} ${order.ticker} (${order.orderType}) CANCELLED — no position held`,
+              },
+            });
+            continue;
+          }
+
           // Execute the fill
           await prisma.paperOrder.update({
             where: { id: order.id },
@@ -317,11 +371,6 @@ export async function checkAndExecuteOrders(paperTradeId?: string) {
           });
 
           results.ordersFilled++;
-
-          // Update position
-          const existingPos = trade.positions.find(
-            (p: any) => p.ticker === order.ticker
-          );
 
           if (order.side === "buy") {
             // Reduce cash, add/increase position
