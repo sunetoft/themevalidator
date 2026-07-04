@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
   }
 
   // Theme members (so charts are fresh when browsing themes)
-  const members = await prisma.themeMember.findMany({
+  const members = await prisma.basketMember.findMany({
     where: { ticker: { not: null } },
     select: { ticker: true },
     distinct: ['ticker'],

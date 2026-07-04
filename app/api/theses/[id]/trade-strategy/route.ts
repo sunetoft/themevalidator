@@ -40,7 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
         { isPublic: true },
       ],
     },
-    include: { themeMembers: true },
+    include: { basketMembers: true },
   })
 
   if (!thesis) {
@@ -85,8 +85,20 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
 
         let fullContent = ''
         let chunkCount = 0
+        let lastHeartbeat = Date.now()
 
-        for await (const delta of chatStream(streamMessages, { maxTokens: 6000 })) {
+        for await (const delta of chatStream(streamMessages, {
+          maxTokens: 6000,
+          onReasoning: () => {
+            const now = Date.now()
+            if (now - lastHeartbeat > 2000) {
+              lastHeartbeat = now
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'reasoning', message: 'AI is reasoning...' })}\n\n`))
+              } catch { /* client disconnected */ }
+            }
+          },
+        })) {
           fullContent += delta
           chunkCount++
 

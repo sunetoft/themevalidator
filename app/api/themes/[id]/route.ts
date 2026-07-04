@@ -37,7 +37,7 @@ export async function GET(
           earningsData: true,
           themeEtfs: true,
           publishedAt: true,
-          themeMembers: {
+          basketMembers: {
             select: {
               id: true,
               ticker: true,

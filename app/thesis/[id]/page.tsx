@@ -37,7 +37,7 @@ interface ThesisData {
   externalFactors: any
   bottlenecks: any
   valuationData: any
-  themeMembers: Array<any>
+  basketMembers: Array<any>
 }
 
 export default function ThesisDetailPage() {
@@ -436,9 +436,9 @@ export default function ThesisDetailPage() {
             </button>
             {expandedSections?.valuation && (
               <div className="px-5 pb-5 space-y-3">
-                {/* Merge themeMembers with valuation.topPicks data */}
+                {/* Merge basketMembers with valuation.topPicks data */}
                 {(() => {
-                  const allMembers = thesis?.themeMembers ?? [];
+                  const allMembers = thesis?.basketMembers ?? [];
                   const topPicks = valuation?.topPicks ?? [];
                   if (allMembers.length === 0 && topPicks.length === 0) {
                     return <p className="text-sm text-muted-foreground">No valuation data</p>;
@@ -591,7 +591,7 @@ export default function ThesisDetailPage() {
             <div className="flex items-center gap-2">
               <Layers className="w-5 h-5 text-primary" />
               <h2 className="font-display font-semibold">Ecosystem Members</h2>
-              <span className="text-xs text-muted-foreground">({thesis?.themeMembers?.length ?? 0} companies)</span>
+              <span className="text-xs text-muted-foreground">({thesis?.basketMembers?.length ?? 0} companies)</span>
             </div>
             {expandedSections?.ecosystem ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -609,7 +609,7 @@ export default function ThesisDetailPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(thesis?.themeMembers ?? []).map((member: any, i: number) => (
+                  {(thesis?.basketMembers ?? []).map((member: any, i: number) => (
                     <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 pr-4 font-medium">{member?.companyName ?? ''}</td>
                       <td className="py-2.5 pr-4 font-mono text-primary">{member?.ticker ?? '-'}</td>

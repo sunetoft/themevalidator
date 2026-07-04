@@ -46,6 +46,11 @@ export async function chatComplete(
 /**
  * Streaming chat completion.
  * Returns an async generator yielding content deltas.
+ *
+ * GLM reasoning models send `reasoning_content` deltas BEFORE actual `content`.
+ * If we only yield `content`, the SSE stream goes silent for 30-60s during
+ * reasoning, causing client/proxy timeouts (ERR_INVALID_STATE: Controller
+ * already closed). The `onReasoning` callback lets callers send heartbeats.
  */
 export async function* chatStream(
   messages: LLMMessage[],
@@ -53,6 +58,7 @@ export async function* chatStream(
     maxTokens?: number;
     jsonMode?: boolean;
     temperature?: number;
+    onReasoning?: (reasoningDelta: string) => void;
   } = {}
 ): AsyncGenerator<string, void, unknown> {
   const stream = await client.chat.completions.create({
@@ -65,8 +71,15 @@ export async function* chatStream(
   });
 
   for await (const chunk of stream) {
-    const delta = chunk.choices[0]?.delta?.content;
-    if (delta) yield delta;
+    const delta = chunk.choices[0]?.delta as any;
+    // GLM reasoning models: forward reasoning_content via callback (not yielded,
+    // since it would contaminate the accumulated content string).
+    if (delta?.reasoning_content && options.onReasoning) {
+      options.onReasoning(delta.reasoning_content);
+    }
+    if (delta?.content) {
+      yield delta.content;
+    }
   }
 }
 

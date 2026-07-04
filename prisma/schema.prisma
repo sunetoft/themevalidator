@@ -108,7 +108,7 @@ model Thesis {
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   paperTrades      PaperTrade[]
-  themeMembers     ThemeMember[]
+  basketMembers     BasketMember[]
   thesisAlerts     ThesisAlert[]
   theme            Theme?          @relation(fields: [themeId], references: [id], onDelete: SetNull)
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -239,7 +239,7 @@ model PaperTradeSnapshot {
   @@index([createdAt])
 }
 
-model ThemeMember {
+model BasketMember {
   id              String   @id @default(cuid())
   thesisId        String
   ticker          String?
@@ -259,6 +259,7 @@ model ThemeMember {
 
   @@index([thesisId])
   @@index([ticker])
+  @@map("ThemeMember")
 }
 
 model PasswordReset {

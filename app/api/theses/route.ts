@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     const theses = await prisma.thesis.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      include: { themeMembers: true },
+      include: { basketMembers: true },
     })
     // Convert any BigInt values
     const serialized = JSON.parse(JSON.stringify(theses, (key: string, value: any) =>

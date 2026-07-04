@@ -368,7 +368,7 @@ export default function PaperTradesPage() {
                                                 {order.side === 'buy' ? 'BUY' : order.orderType === 'stop-loss' ? 'SL' : 'TP'}
                                               </span>
                                               <span className="text-muted-foreground">
-                                                {order.quantity.toFixed(2)} @ ${order.targetPrice.toFixed(2)}
+                                                {Math.floor(order.quantity)} @ ${order.targetPrice.toFixed(2)}
                                               </span>
                                             </div>
                                             <span className="font-mono text-muted-foreground">
@@ -400,7 +400,7 @@ export default function PaperTradesPage() {
                                               <div className="flex items-center gap-2">
                                                 <span className="font-mono text-sm font-medium text-primary w-14">{pos.ticker}</span>
                                                 <span className="text-xs text-muted-foreground">
-                                                  {pos.quantity.toFixed(2)} shares
+                                                  {Math.floor(pos.quantity)} shares
                                                 </span>
                                                 {trade.tickerSharpe && trade.tickerSharpe[pos.ticker] !== undefined && trade.tickerSharpe[pos.ticker] !== null && (
                                                   <span className={`flex items-center gap-0.5 font-mono text-xs ${sharpeColorClass(trade.tickerSharpe[pos.ticker])}`} title="Sharpe Ratio">

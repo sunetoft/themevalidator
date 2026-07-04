@@ -20,7 +20,7 @@ export default async function ThemesPage() {
           title: true,
           description: true,
           overallScore: true,
-          themeMembers: {
+          basketMembers: {
             select: { ticker: true, companyName: true },
           },
           _count: {
@@ -45,7 +45,7 @@ export default async function ThemesPage() {
       scores.length > 0
         ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length)
         : null;
-    const allMembers = theme.theses.flatMap((t) => t.themeMembers);
+    const allMembers = theme.theses.flatMap((t) => t.basketMembers);
     const activeTrades = theme.theses.reduce(
       (sum, t) => sum + t._count.paperTrades,
       0

@@ -289,7 +289,7 @@ export default function PaperTradePage() {
                   {trade.positions.map((pos) => (
                     <tr key={pos.id} className="border-b border-border/50 last:border-0">
                       <td className="py-2.5 pr-4 font-mono font-medium text-primary">{pos.ticker}</td>
-                      <td className="py-2.5 pr-4 text-right font-mono">{pos.quantity.toFixed(2)}</td>
+                      <td className="py-2.5 pr-4 text-right font-mono">{Math.floor(pos.quantity)}</td>
                       <td className="py-2.5 pr-4 text-right font-mono">${pos.avgCostBasis.toFixed(2)}</td>
                       <td className="py-2.5 pr-4 text-right font-mono">${pos.currentPrice.toFixed(2)}</td>
                       <td className="py-2.5 pr-4 text-right font-mono">${pos.marketValue.toFixed(2)}</td>
@@ -312,7 +312,7 @@ export default function PaperTradePage() {
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
-                      <span>Qty: <span className="font-mono">{pos.quantity.toFixed(2)}</span></span>
+                      <span>Qty: <span className="font-mono">{Math.floor(pos.quantity)}</span></span>
                       <span>Cost: <span className="font-mono">${pos.avgCostBasis.toFixed(2)}</span></span>
                       <span>Current: <span className="font-mono">${pos.currentPrice.toFixed(2)}</span></span>
                       <span>Value: <span className="font-mono">${pos.marketValue.toFixed(2)}</span></span>
@@ -356,7 +356,7 @@ export default function PaperTradePage() {
                           <td className="py-2.5 pr-4 text-right font-mono font-bold text-primary">
                             ${order.targetPrice.toFixed(2)}
                           </td>
-                          <td className="py-2.5 pr-4 text-right font-mono">{order.quantity.toFixed(2)}</td>
+                          <td className="py-2.5 pr-4 text-right font-mono">{Math.floor(order.quantity)}</td>
                           <td className="py-2.5 pr-4 text-right font-mono text-muted-foreground">
                             ${(order.targetPrice * order.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </td>
@@ -382,7 +382,7 @@ export default function PaperTradePage() {
                         </div>
                         <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                           <span>Limit: <span className="font-mono font-bold text-primary">${order.targetPrice.toFixed(2)}</span></span>
-                          <span>Qty: <span className="font-mono">{order.quantity.toFixed(2)}</span></span>
+                          <span>Qty: <span className="font-mono">{Math.floor(order.quantity)}</span></span>
                           <span>Est. Cost: <span className="font-mono">${(order.targetPrice * order.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></span>
                         </div>
                       </div>
@@ -426,7 +426,7 @@ export default function PaperTradePage() {
                           }`}>
                             ${order.targetPrice.toFixed(2)}
                           </td>
-                          <td className="py-2.5 pr-4 text-right font-mono">{order.quantity.toFixed(2)}</td>
+                          <td className="py-2.5 pr-4 text-right font-mono">{Math.floor(order.quantity)}</td>
                           <td className="py-2.5 text-right font-mono text-muted-foreground">
                             ${(order.targetPrice * order.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
                           </td>
@@ -451,7 +451,7 @@ export default function PaperTradePage() {
                         </div>
                         <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                           <span>Trigger: <span className={`font-mono ${order.orderType === 'stop-loss' ? 'text-red-400' : 'text-primary'}`}>${order.targetPrice.toFixed(2)}</span></span>
-                          <span>Qty: <span className="font-mono">{order.quantity.toFixed(2)}</span></span>
+                          <span>Qty: <span className="font-mono">{Math.floor(order.quantity)}</span></span>
                           <span>Est. Value: <span className="font-mono">${(order.targetPrice * order.quantity).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span></span>
                         </div>
                       </div>
@@ -479,7 +479,7 @@ export default function PaperTradePage() {
                       {order.side.toUpperCase()}
                     </span>
                     <span className="font-mono font-medium">{order.ticker}</span>
-                    <span className="text-muted-foreground">{order.quantity} @ ${order.filledPrice?.toFixed(2)}</span>
+                    <span className="text-muted-foreground">{Math.floor(order.quantity)} @ ${order.filledPrice?.toFixed(2)}</span>
                   </div>
                   <span className="text-xs text-muted-foreground">
                     {order.filledAt ? new Date(order.filledAt).toLocaleString() : ''}

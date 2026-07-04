@@ -214,7 +214,7 @@ interface ThesisData {
   id: string
   title: string
   description: string
-  themeMembers: Array<{
+  basketMembers: Array<{
     ticker: string | null
     companyName: string
     valuationStatus: string | null
@@ -273,7 +273,7 @@ export default function StrategyPage() {
   // Initialize selected tickers and default name when thesis loads
   useEffect(() => {
     if (thesis) {
-      const eligible = thesis.themeMembers
+      const eligible = thesis.basketMembers
         .filter((m) => m.ticker)
         .map((m) => m.ticker as string)
       setSelectedTickers(new Set(eligible))
@@ -335,7 +335,7 @@ export default function StrategyPage() {
   }
 
   const toggleAllTickers = () => {
-    const eligible = thesis?.themeMembers
+    const eligible = thesis?.basketMembers
       .filter((m) => m.ticker)
       .map((m) => m.ticker as string) ?? []
     if (selectedTickers.size === eligible.length) {
@@ -523,7 +523,7 @@ export default function StrategyPage() {
     )
   }
 
-  const stockBasket = thesis.themeMembers.filter(
+  const stockBasket = thesis.basketMembers.filter(
     (m) => m.ticker
   )
 
@@ -913,7 +913,7 @@ export default function StrategyPage() {
                           <div className="grid gap-4 md:grid-cols-2">
                             {parsed.stocks.map((stock, i) => {
                               const attrs = extractAttributes(stock.content)
-                              const member = thesis?.themeMembers.find((m) => m.ticker === stock.ticker)
+                              const member = thesis?.basketMembers.find((m) => m.ticker === stock.ticker)
                               const confidence = member ? computeConfidence(member) : null
                               return (
                                 <motion.div

@@ -41,7 +41,7 @@ export async function POST(
   // Verify thesis belongs to user
   const thesis = await prisma.thesis.findFirst({
     where: { id: thesisId, userId },
-    include: { themeMembers: true },
+    include: { basketMembers: true },
   })
 
   if (!thesis) {
@@ -56,7 +56,7 @@ export async function POST(
   }
 
   // Check if ticker already exists in theme
-  const existing = thesis.themeMembers.find(
+  const existing = thesis.basketMembers.find(
     (m) => m.ticker?.toUpperCase() === ticker
   )
   if (existing) {
@@ -64,7 +64,7 @@ export async function POST(
   }
 
   // Build context about the thesis for the LLM
-  const thesisContext = `Thesis: ${thesis.title}\nDescription: ${thesis.description}\nExisting members: ${thesis.themeMembers.map((m) => `${m.ticker} (${m.companyName} - ${m.role})`).join(', ')}`
+  const thesisContext = `Thesis: ${thesis.title}\nDescription: ${thesis.description}\nExisting members: ${thesis.basketMembers.map((m) => `${m.ticker} (${m.companyName} - ${m.role})`).join(', ')}`
 
   try {
     const messages = [
@@ -91,8 +91,8 @@ export async function POST(
       }, { status: 400 })
     }
 
-    // Create the new ThemeMember
-    const newMember = await prisma.themeMember.create({
+    // Create the new BasketMember
+    const newMember = await prisma.basketMember.create({
       data: {
         thesisId,
         ticker: analysis?.ticker ?? ticker,

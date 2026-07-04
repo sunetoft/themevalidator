@@ -182,7 +182,7 @@ export async function POST(
 
   const thesis = await prisma.thesis.findFirst({
     where: { id: thesisId, userId },
-    include: { themeMembers: true },
+    include: { basketMembers: true },
   })
 
   if (!thesis) {
@@ -201,7 +201,7 @@ export async function POST(
 
   const prompt = buildStrategyPrompt(
     thesis,
-    thesis.themeMembers,
+    thesis.basketMembers,
     amount,
     riskProfile,
     answers ?? {}
@@ -271,8 +271,20 @@ export async function POST(
 
           let fullContent = ''
           let chunkCount = 0
+          let lastHeartbeat = Date.now()
 
-          for await (const delta of chatStream(streamMessages, { maxTokens: 8000 })) {
+          for await (const delta of chatStream(streamMessages, {
+            maxTokens: 8000,
+            onReasoning: () => {
+              const now = Date.now()
+              if (now - lastHeartbeat > 2000) {
+                lastHeartbeat = now
+                try {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'reasoning', message: 'AI is reasoning...' })}\n\n`))
+                } catch { /* client disconnected */ }
+              }
+            },
+          })) {
             fullContent += delta
             chunkCount++
 
@@ -344,7 +356,7 @@ export async function POST(
   return NextResponse.json({
     strategyId: strategy.id,
     prompt,
-    eligibleStocks: thesis.themeMembers
+    eligibleStocks: thesis.basketMembers
       .filter((m) => m.ticker)
       .map((m) => ({ ticker: m.ticker, companyName: m.companyName, valuationStatus: m.valuationStatus })),
     excludedStocks: [],

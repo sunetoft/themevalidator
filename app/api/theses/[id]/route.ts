@@ -18,7 +18,7 @@ export async function GET(
   try {
     const thesis = await prisma.thesis.findFirst({
       where: { id: params.id, userId },
-      include: { themeMembers: true, thesisAlerts: { where: { resolved: false }, orderBy: { createdAt: 'desc' }, take: 20 } },
+      include: { basketMembers: true, thesisAlerts: { where: { resolved: false }, orderBy: { createdAt: 'desc' }, take: 20 } },
     })
     if (!thesis) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 })

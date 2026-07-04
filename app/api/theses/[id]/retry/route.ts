@@ -91,7 +91,7 @@ export async function POST(
   await prisma.thesis.update({ where: { id: thesisId }, data: { status: 'analyzing' } })
 
   // Clean up old theme members
-  await prisma.themeMember.deleteMany({ where: { thesisId } })
+  await prisma.basketMember.deleteMany({ where: { thesisId } })
 
   // Extract search terms (shared enrichment logic)
   const { tickers, keywords } = extractSearchTerms(thesisText)
@@ -130,7 +130,20 @@ export async function POST(
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Retrying analysis...', thesisId })}\n\n`))
 
         let fullContent = ''
-        for await (const delta of chatStream(messages, { jsonMode: true, maxTokens: 16000 })) {
+        let lastHeartbeat = Date.now()
+        for await (const delta of chatStream(messages, {
+          jsonMode: true,
+          maxTokens: 16000,
+          onReasoning: () => {
+            const now = Date.now()
+            if (now - lastHeartbeat > 2000) {
+              lastHeartbeat = now
+              try {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'reasoning', message: 'AI is reasoning...' })}\n\n`))
+              } catch { /* client disconnected */ }
+            }
+          },
+        })) {
           fullContent += delta
         }
 
@@ -184,7 +197,7 @@ export async function POST(
           })
 
           for (const member of members) {
-            await prisma.themeMember.create({
+            await prisma.basketMember.create({
               data: {
                 thesisId,
                 ticker: member?.ticker ?? null,

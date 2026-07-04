@@ -158,21 +158,21 @@ function parseStrategyToOrders(
       side: "buy",
       orderType: "limit",
       targetPrice: entryPrice,
-      quantity: Math.floor(quantity * 100) / 100,
+      quantity: Math.floor(quantity),
     });
     orders.push({
       ticker,
       side: "sell",
       orderType: "stop-loss",
       targetPrice: stopPrice,
-      quantity: Math.floor(quantity * 100) / 100,
+      quantity: Math.floor(quantity),
     });
     orders.push({
       ticker,
       side: "sell",
       orderType: "take-profit",
       targetPrice: tpPrice,
-      quantity: Math.floor(quantity * 100) / 100,
+      quantity: Math.floor(quantity),
     });
   }
 
@@ -191,14 +191,14 @@ export async function startPaperTrade(
   const strategy = await prisma.tradeStrategy.findUnique({
     where: { id: strategyId },
     include: {
-      thesis: { include: { themeMembers: true } },
+      thesis: { include: { basketMembers: true } },
     },
   });
 
   if (!strategy) throw new Error("Strategy not found");
 
   // Filter tickers
-  let eligibleMembers = strategy.thesis.themeMembers.filter(
+  let eligibleMembers = strategy.thesis.basketMembers.filter(
     (m: any) => m.ticker
   );
 

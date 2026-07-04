@@ -47,7 +47,7 @@ export async function reanalyzeThesis(
   // Fetch thesis with all current data
   const thesis = await prisma.thesis.findUnique({
     where: { id: thesisId },
-    include: { themeMembers: true },
+    include: { basketMembers: true },
   });
 
   if (!thesis) {
@@ -64,7 +64,7 @@ export async function reanalyzeThesis(
   };
 
   // Build full member list for context
-  const allMembers = thesis.themeMembers.map((m: any) => ({
+  const allMembers = thesis.basketMembers.map((m: any) => ({
     ticker: m.ticker,
     companyName: m.companyName,
     role: m.role,
@@ -129,13 +129,13 @@ Please update the analysis sections to incorporate the new stock. Preserve all e
     // Sync ecosystem members: add any new ones the LLM identified
     const ecosystemMembers = updated?.ecosystem?.members ?? [];
     const existingTickers = new Set(
-      thesis.themeMembers.map((m: any) => m.ticker?.toUpperCase()).filter(Boolean)
+      thesis.basketMembers.map((m: any) => m.ticker?.toUpperCase()).filter(Boolean)
     );
 
     for (const member of ecosystemMembers) {
       const ticker = member?.ticker?.toUpperCase();
       if (ticker && !existingTickers.has(ticker)) {
-        await prisma.themeMember.create({
+        await prisma.basketMember.create({
           data: {
             thesisId,
             ticker: member.ticker,

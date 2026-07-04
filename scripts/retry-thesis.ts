@@ -7,7 +7,7 @@ import { chatStream } from '../lib/llm'
 import { searchTweets } from '../lib/x-api'
 import { fetchMarketSignals, extractSearchTerms } from '../lib/enrichment'
 import { fetchFinancialData, formatFinancialDataForLLM } from '../lib/financial-data'
-import { ThemeMember } from '@prisma/client'
+import { BasketMember } from '@prisma/client'
 
 const THESIS_ID = 'cmqw5gpkg06y113650cqsszxk'
 
@@ -234,7 +234,7 @@ async function main() {
   console.log('Saving to database...')
 
   // Delete old theme members
-  await prisma.themeMember.deleteMany({ where: { thesisId: THESIS_ID } })
+  await prisma.basketMember.deleteMany({ where: { thesisId: THESIS_ID } })
 
   const members = finalResult?.ecosystem?.members ?? []
 
@@ -285,7 +285,7 @@ async function main() {
 
   // Create theme members
   for (const member of members) {
-    await prisma.themeMember.create({
+    await prisma.basketMember.create({
       data: {
         thesisId: THESIS_ID,
         ticker: member?.ticker ?? null,

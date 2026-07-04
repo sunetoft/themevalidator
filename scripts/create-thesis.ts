@@ -325,7 +325,7 @@ async function main() {
 
   // Create theme members
   for (const member of members) {
-    await prisma.themeMember.create({
+    await prisma.basketMember.create({
       data: {
         thesisId: thesis.id,
         ticker: member?.ticker ?? null,

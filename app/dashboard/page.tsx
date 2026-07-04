@@ -26,7 +26,7 @@ interface Thesis {
   status: string
   createdAt: string
   inputType: string
-  themeMembers: Array<{ companyName: string; ticker: string | null }>
+  basketMembers: Array<{ companyName: string; ticker: string | null }>
 }
 
 export default function DashboardPage() {
@@ -365,8 +365,8 @@ export default function DashboardPage() {
                           <Clock className="w-3 h-3" />
                           {thesis?.createdAt ? new Date(thesis.createdAt).toLocaleDateString() : ''}
                         </span>
-                        {(thesis?.themeMembers?.length ?? 0) > 0 && (
-                          <span>{thesis.themeMembers.length} companies</span>
+                        {(thesis?.basketMembers?.length ?? 0) > 0 && (
+                          <span>{thesis.basketMembers.length} companies</span>
                         )}
                         <span className="capitalize">{thesis?.inputType ?? ''}</span>
                       </div>

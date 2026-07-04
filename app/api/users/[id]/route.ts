@@ -43,7 +43,7 @@ export async function DELETE(
 
   try {
     // Hard delete — Prisma onDelete: Cascade on all relations ensures everything is removed:
-    // - Thesis (→ ThemeMember, TradeStrategy, PaperTrade → PaperOrder, PaperPosition, PaperTradeSnapshot, PaperTradeLog)
+    // - Thesis (→ BasketMember, TradeStrategy, PaperTrade → PaperOrder, PaperPosition, PaperTradeSnapshot, PaperTradeLog)
     // - TradeStrategy
     // - PaperTrade (→ all child records)
     // - Session

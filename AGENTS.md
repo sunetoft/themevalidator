@@ -65,7 +65,7 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
 **Theme vs Thesis architecture:**
 - `Theme` = macro investment category (e.g., "AI Infrastructure Buildout") — the parent
 - `Thesis` = specific investment narrative within a theme (e.g., "CPO supply bottleneck")
-- `ThemeMember` = basket stocks on a specific Thesis (not on Theme directly)
+- `BasketMember` = basket stocks on a specific Thesis (DB table still `ThemeMember` via @@map)
 - `Theme.themes` → one-to-many → `Thesis`
 - `Thesis.themeId` → nullable FK → `Theme`
 - Public gallery at `/themes` shows published `Theme` cards with aggregated scores

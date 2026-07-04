@@ -179,7 +179,7 @@ export async function runThesisMonitor(): Promise<ThesisMonitorSummary> {
       financialData: true,
       technicalData: true,
       earningsData: true,
-      themeMembers: {
+      basketMembers: {
         select: { ticker: true, instrumentType: true },
       },
     },
@@ -219,14 +219,14 @@ interface ThesisForMonitor {
   financialData: unknown
   technicalData: unknown
   earningsData: unknown
-  themeMembers: { ticker: string | null; instrumentType: string | null }[]
+  basketMembers: { ticker: string | null; instrumentType: string | null }[]
 }
 
 async function monitorThesis(thesis: ThesisForMonitor): Promise<number> {
   // 1. Collect tickers from members.
   const stockTickers: string[] = []
   const etfTickers: string[] = []
-  for (const m of thesis.themeMembers) {
+  for (const m of thesis.basketMembers) {
     if (!m.ticker) continue
     if (m.instrumentType === 'etf') etfTickers.push(m.ticker)
     else stockTickers.push(m.ticker)

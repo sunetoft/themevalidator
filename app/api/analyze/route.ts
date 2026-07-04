@@ -290,6 +290,8 @@ export async function POST(request: NextRequest) {
 
         let fullContent = ''
         let deltaCount = 0
+        let reasoningCharCount = 0
+        let lastHeartbeat = Date.now()
 
         const progressMessages = [
           'Analyzing investment thesis...',
@@ -304,7 +306,26 @@ export async function POST(request: NextRequest) {
         ]
 
         // Stream the LLM response
-        for await (const delta of chatStream(messages, { jsonMode: true, maxTokens: 16000 })) {
+        // onReasoning: send SSE heartbeat every ~2s during GLM's reasoning phase
+        // to prevent client/proxy timeout (reasoning takes 30-60s for complex theses)
+        for await (const delta of chatStream(messages, {
+          jsonMode: true,
+          maxTokens: 16000,
+          onReasoning: (reasoningDelta) => {
+            reasoningCharCount += reasoningDelta.length
+            const now = Date.now()
+            if (now - lastHeartbeat > 2000) {
+              lastHeartbeat = now
+              const heartbeat = JSON.stringify({
+                status: 'reasoning',
+                message: `AI is thinking... (${Math.round(reasoningCharCount / 1000)}K chars analyzed)`,
+              })
+              try {
+                controller.enqueue(encoder.encode(`data: ${heartbeat}\n\n`))
+              } catch { /* client may have disconnected */ }
+            }
+          },
+        })) {
           fullContent += delta
           deltaCount++
 
@@ -450,7 +471,7 @@ export async function POST(request: NextRequest) {
 
           // Create theme members (with instrumentType + sector)
           for (const member of members) {
-            await prisma.themeMember.create({
+            await prisma.basketMember.create({
               data: {
                 thesisId: thesis.id,
                 ticker: member?.ticker ?? null,

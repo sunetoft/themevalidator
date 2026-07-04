@@ -59,7 +59,7 @@ interface ThesisDetail {
   earningsData: any
   themeEtfs: any[] | null
   publishedAt: string | null
-  themeMembers: Array<{
+  basketMembers: Array<{
     id: string
     ticker: string | null
     companyName: string
@@ -289,7 +289,7 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
           {expandedSections.valuation && (
             <div className="px-4 pb-4 space-y-2">
               {(() => {
-                const allMembers = thesis.themeMembers ?? []
+                const allMembers = thesis.basketMembers ?? []
                 const topPicks = valuation?.topPicks ?? []
                 if (allMembers.length === 0 && topPicks.length === 0) {
                   return <p className="text-sm text-muted-foreground">No valuation data</p>
@@ -371,7 +371,7 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
       </div>
 
       {/* Ecosystem Stocks table */}
-      {thesis.themeMembers && thesis.themeMembers.length > 0 && (
+      {thesis.basketMembers && thesis.basketMembers.length > 0 && (
         <div className="bg-background border border-border rounded-xl overflow-hidden">
           <button
             onClick={() => toggleSection('ecosystem')}
@@ -381,7 +381,7 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
               <Layers className="w-5 h-5 text-primary" />
               <h2 className="font-semibold text-sm">Ecosystem Stocks</h2>
               <span className="text-xs text-muted-foreground">
-                ({thesis.themeMembers.filter(m => m.instrumentType !== 'etf').length} stocks)
+                ({thesis.basketMembers.filter(m => m.instrumentType !== 'etf').length} stocks)
               </span>
             </div>
             {expandedSections.ecosystem ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -401,7 +401,7 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {thesis.themeMembers.filter(m => m.instrumentType !== 'etf').map((member, i) => (
+                  {thesis.basketMembers.filter(m => m.instrumentType !== 'etf').map((member, i) => (
                     <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 pr-4 font-medium">{member.companyName ?? ''}</td>
                       <td className="py-2.5 pr-4 font-mono text-primary">{member.ticker ?? '-'}</td>
