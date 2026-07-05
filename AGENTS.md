@@ -22,6 +22,7 @@ thesis monitoring alerts, cross-site sync with TradeScouter and OptionLookup.
 - **Auth:** NextAuth.js (Google OAuth + credentials)
 - **Payments:** Stripe subscriptions
 - **LLM:** Z.AI GLM via `/api/coding/paas/v4` endpoint
+- **Graph DB:** FalkorDB for thesis graph analysis (companies, supply chains, bottlenecks)
 - **UI:** Radix UI primitives, Lucide icons, next-themes (dark mode)
 
 ## Environment Variables
@@ -45,9 +46,39 @@ Copy `.env` (not committed) and fill in:
 | `CROSS_SITE_API_KEY` | Shared secret for inter-app API calls |
 | `TRADESCOUTER_INTERNAL_URL` | `http://localhost:3013` |
 | `OPTIONLOOKUP_INTERNAL_URL` | `http://localhost:3011` |
+| `FALKORDB_HOST` | FalkorDB graph database host |
+| `FALKORDB_PORT` | FalkorDB port (6379) |
+| `FALKORDB_PASSWORD` | FalkorDB auth password |
 
 > ⚠️ GLM is a reasoning model — set `max_tokens` to 2000+ or responses come
 > back empty (reasoning tokens consume the budget).
+
+## FalkorDB Graph Integration
+
+Completed thesis analyses can be synced to FalkorDB as queryable property graphs.
+
+**How it works:**
+- `lib/falkordb.ts` — `syncThesisToGraph(thesis)` maps LLM analysis JSON to graph nodes:
+  - `ecosystem.members` → Company nodes with EXPOSED_TO (tier 1-3) relationships
+  - `bottlenecks.items` → Product nodes with bottleneck_status
+  - `valuation.topPicks` → Per-stock catalysts/risks
+  - `themeName` → Theme node with thesis summary
+- `POST /api/theses/[id]/sync-graph` — Admin-only API endpoint to trigger sync
+- `GET /api/theses/[id]/sync-graph` — Check sync status
+
+**Graph naming:** Theme name → slug (e.g., "AI Infrastructure" → `ai_infrastructure`).
+Each theme gets its own FalkorDB graph, queryable via Cypher.
+
+**Usage from admin:**
+```bash
+# Sync a single thesis
+curl -X POST http://localhost:3001/api/theses/<thesis-id>/sync-graph \
+  -H "Cookie: next-auth.session-token=<token>"
+
+# Check status
+curl http://localhost:3001/api/theses/<thesis-id>/sync-graph \
+  -H "Cookie: next-auth.session-token=<token>"
+```
 
 ## Database
 

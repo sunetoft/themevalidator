@@ -8,7 +8,7 @@ import ScoreBadge from '@/components/score-badge'
 import {
   Zap, Plus, Clock, TrendingUp, Target, Trash2, ExternalLink,
   Search, ChevronRight, BarChart3, AlertTriangle, Shield,
-  Crown, CreditCard, Lock, RotateCw, ArrowDownUp
+  Crown, CreditCard, Lock, RotateCw, ArrowDownUp, Share2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import ScoringMethodologyModal from '@/components/scoring-methodology'
@@ -27,6 +27,7 @@ interface Thesis {
   createdAt: string
   inputType: string
   basketMembers: Array<{ companyName: string; ticker: string | null }>
+  graphSyncedAt: string | null
 }
 
 export default function DashboardPage() {
@@ -356,6 +357,14 @@ export default function DashboardPage() {
                           <span className="px-2 py-0.5 bg-red-500/10 text-red-500 text-xs rounded-full flex items-center gap-1">
                             <AlertTriangle className="w-3 h-3" />
                             Failed
+                          </span>
+                        )}
+                        {thesis?.graphSyncedAt && (
+                          <span
+                            title={`Synced to GraphDB: ${new Date(thesis.graphSyncedAt).toLocaleDateString()}`}
+                            className="text-blue-400 flex items-center gap-0.5"
+                          >
+                            <Share2 className="w-3.5 h-3.5" />
                           </span>
                         )}
                       </div>

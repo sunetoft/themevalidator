@@ -105,6 +105,7 @@ model Thesis {
   technicalData    Json?    // Per-ticker RSI, MA50/200, trend classification
   earningsData     Json?    // Per-ticker earnings beat/miss history, next earnings date
   themeEtfs        Json?    // ETFs covering the theme: symbol, name, AUM, YTD, overlap
+  graphSyncedAt    DateTime?       // When this thesis was last synced to FalkorDB graph
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   paperTrades      PaperTrade[]

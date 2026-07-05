@@ -10,7 +10,7 @@ import {
   ArrowLeft, TrendingUp, TrendingDown, Minus, Building2,
   ShieldCheck, AlertTriangle, Zap, MessageSquare, ExternalLink,
   ChevronDown, ChevronUp, Target, Layers, Lock, BarChart3,
-  Plus, Loader2, FileText, Link2
+  Plus, Loader2, FileText, Link2, Share2, CheckCircle2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -38,6 +38,7 @@ interface ThesisData {
   bottlenecks: any
   valuationData: any
   basketMembers: Array<any>
+  graphSyncedAt: string | null
 }
 
 export default function ThesisDetailPage() {
@@ -57,6 +58,7 @@ export default function ThesisDetailPage() {
   const [tickerInput, setTickerInput] = useState('')
   const [addingTicker, setAddingTicker] = useState(false)
   const [tickerProgress, setTickerProgress] = useState('')
+  const [graphSyncing, setGraphSyncing] = useState(false)
 
   const thesisId = params?.id as string
 
@@ -82,6 +84,25 @@ export default function ThesisDetailPage() {
 
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => ({ ...(prev ?? {}), [key]: !(prev ?? {})[key] }))
+  }
+
+  const syncToGraph = async () => {
+    if (!thesis?.id) return
+    setGraphSyncing(true)
+    try {
+      const res = await fetch(`/api/theses/${thesis.id}/sync-graph`, { method: 'POST' })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        toast.success(`Synced ${data.companiesSynced} companies & ${data.productsSynced} products to GraphDB`)
+        setThesis(prev => prev ? { ...prev, graphSyncedAt: new Date().toISOString() } : prev)
+      } else {
+        toast.error(data.error || 'Failed to sync to GraphDB')
+      }
+    } catch (err: any) {
+      toast.error('Failed to sync to GraphDB')
+    } finally {
+      setGraphSyncing(false)
+    }
   }
 
   const getImpactIcon = (impact: string) => {
@@ -261,6 +282,41 @@ export default function ThesisDetailPage() {
                       </motion.div>
                     )}
                   </AnimatePresence>
+                </div>
+              )}
+
+              {/* Sync to GraphDB button — only for completed theses */}
+              {thesis?.status === 'completed' && (
+                <div className="mb-3">
+                  <button
+                    onClick={syncToGraph}
+                    disabled={graphSyncing}
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
+                      thesis?.graphSyncedAt
+                        ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                        : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {graphSyncing ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        Syncing…
+                      </>
+                    ) : thesis?.graphSyncedAt ? (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        In GraphDB — synced {new Date(thesis.graphSyncedAt).toLocaleDateString()}
+                        <span className="text-muted-foreground/60 mx-1">·</span>
+                        <Share2 className="w-3 h-3" />
+                        Re-sync
+                      </>
+                    ) : (
+                      <>
+                        <Share2 className="w-3.5 h-3.5" />
+                        Sync to GraphDB
+                      </>
+                    )}
+                  </button>
                 </div>
               )}
 
