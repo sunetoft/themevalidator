@@ -12,7 +12,7 @@ export default function ScoringMethodologyModal() {
     { name: 'Sentiment', weight: 'Social signals', desc: 'X/Twitter sentiment analysis — bullish/bearish signal strength from recent posts mentioning key tickers and theme keywords.' },
     { name: 'Ecosystem', weight: 'Completeness', desc: 'How complete and well-connected the value chain is. More members with clear roles = higher score.' },
     { name: 'Risk', weight: 'External factors', desc: 'Assessment of regulatory, competitive, and macro risks. Lower risk = higher score.' },
-    { name: 'Opportunity', weight: 'Bottlenecks', desc: 'Pricing power and bottleneck analysis. Companies with strong pricing power in bottlenecks score higher.' },
+    { name: 'Opportunity', weight: 'Bottlenecks + Products', desc: 'Pricing power opportunities — bottleneck analysis (supply constraints) and product evaluator (unique products giving companies pricing power).' },
     { name: 'Moat', weight: 'Valuation', weight2: '1-10 scale', desc: 'Competitive moat strength of top picks. Wide moats (like network effects, switching costs) score highest.' },
   ]
 

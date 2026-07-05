@@ -10,6 +10,7 @@ import SentimentChart from '@/components/sentiment-chart'
 import ThesisAlertsBanner from '@/components/thesis-alerts-banner'
 import ThemeETFsCard from '@/components/theme-etfs-card'
 import FinancialTechnicalSection from '@/components/financial-technical-section'
+import ProductEvaluatorSection from '@/components/product-evaluator-section'
 import {
   ArrowLeft, ArrowRight, Crown, BarChart3, Target,
   Building2, MessageSquare, AlertTriangle, Lock, ShieldCheck,
@@ -57,6 +58,7 @@ interface ThesisDetail {
   financialData: any
   technicalData: any
   earningsData: any
+  productEvaluator: any
   themeEtfs: any[] | null
   publishedAt: string | null
   basketMembers: Array<{
@@ -152,6 +154,7 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
   const factors = thesis.externalFactors ?? {}
   const bottlenecks = thesis.bottlenecks ?? {}
   const valuation = thesis.valuationData ?? {}
+  const productEvaluator = thesis.productEvaluator ?? null
 
   return (
     <div className="space-y-4 mt-4">
@@ -159,6 +162,13 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
       <FinancialTechnicalSection
         financialHealth={thesis.financialData ?? null}
         technicalAnalysis={thesis.technicalData ?? null}
+      />
+
+      {/* Product Evaluator */}
+      <ProductEvaluatorSection
+        data={productEvaluator}
+        expanded={expandedSections.productEvaluator ?? true}
+        onToggle={() => toggleSection('productEvaluator')}
       />
 
       {/* Analysis sections grid */}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import ProductEvaluatorSection from '@/components/product-evaluator-section'
 
 interface ThesisData {
   id: string
@@ -37,6 +38,7 @@ interface ThesisData {
   externalFactors: any
   bottlenecks: any
   valuationData: any
+  productEvaluator: any
   basketMembers: Array<any>
   graphSyncedAt: string | null
 }
@@ -198,6 +200,7 @@ export default function ThesisDetailPage() {
   const factors = thesis?.externalFactors ?? {}
   const bottlenecks = thesis?.bottlenecks ?? {}
   const valuation = thesis?.valuationData ?? {}
+  const productEvaluator = thesis?.productEvaluator ?? null
   const keyTakeaways = (thesis as any)?.sentimentData?.keySignals ?? []
 
   return (
@@ -474,6 +477,13 @@ export default function ThesisDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Product Evaluator */}
+          <ProductEvaluatorSection
+            data={productEvaluator}
+            expanded={expandedSections?.productEvaluator ?? true}
+            onToggle={() => toggleSection('productEvaluator')}
+          />
 
           {/* Valuation & Moat */}
           <div
