@@ -118,9 +118,10 @@ function buildStrategyPrompt(
   const answersSummary = STRATEGY_QUESTIONS.map((q) => {
     const isYes = answers[q.id]
     const directive = isYes ? q.llmHandlingYes : q.llmHandlingNo
-    return `- **${q.category} — ${q.title}**: Answered "${isYes ? 'Yes' : 'No'}"
-  - Rationale: ${q.why}
-  - ACTION: ${directive}`
+    return `- **${q.category} — ${q.title}**
+  Q: ${q.question}
+  A: ${isYes ? 'Yes' : 'No'}
+  → ${directive}`
   }).join('\n')
 
   const stockList = eligibleMembers
@@ -144,7 +145,7 @@ ${stockList}
 - ${riskGuidance}
 
 ## Investor Preferences & Strategy Directives:
-IMPORTANT: Each preference below contains the investor's answer, the rationale behind it, and a specific ACTION directive. You MUST follow these directives when constructing the strategy. If any directives conflict, resolve them sensibly and explain your reasoning.
+IMPORTANT: Each preference below shows the question asked, the investor's answer, and a specific directive you MUST follow. If any directives conflict, resolve them sensibly and explain your reasoning.
 
 ${answersSummary}
 
@@ -190,7 +191,7 @@ export async function POST(
   }
 
   const body = await request.json()
-  const { amount, riskProfile, answers, name, strategyId: existingStrategyId } = body ?? {}
+  const { amount, riskProfile, answers, name, strategyId: existingStrategyId, selectedTickers } = body ?? {}
 
   if (!amount || amount <= 0) {
     return NextResponse.json({ error: 'Valid amount is required' }, { status: 400 })
@@ -199,9 +200,19 @@ export async function POST(
     return NextResponse.json({ error: 'Valid risk profile is required' }, { status: 400 })
   }
 
+  // Filter basket members to only the user-selected tickers
+  const allMembers = thesis.basketMembers || []
+  const basketMembers = Array.isArray(selectedTickers) && selectedTickers.length > 0
+    ? allMembers.filter((m: any) => m.ticker && selectedTickers.includes(m.ticker))
+    : allMembers.filter((m: any) => m.ticker)
+
+  if (basketMembers.length === 0) {
+    return NextResponse.json({ error: 'No stocks selected. Please select at least one ticker.' }, { status: 400 })
+  }
+
   const prompt = buildStrategyPrompt(
     thesis,
-    thesis.basketMembers,
+    basketMembers,
     amount,
     riskProfile,
     answers ?? {}
@@ -356,9 +367,9 @@ export async function POST(
   return NextResponse.json({
     strategyId: strategy.id,
     prompt,
-    eligibleStocks: thesis.basketMembers
-      .filter((m) => m.ticker)
-      .map((m) => ({ ticker: m.ticker, companyName: m.companyName, valuationStatus: m.valuationStatus })),
+    eligibleStocks: basketMembers
+      .filter((m: any) => m.ticker)
+      .map((m: any) => ({ ticker: m.ticker, companyName: m.companyName, valuationStatus: m.valuationStatus })),
     excludedStocks: [],
   })
 }

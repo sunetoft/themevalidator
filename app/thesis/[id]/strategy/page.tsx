@@ -406,7 +406,7 @@ export default function StrategyPage() {
       const res = await fetch(`/api/theses/${thesisId}/strategy`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: numAmount, riskProfile, answers, name: strategyName || null }),
+        body: JSON.stringify({ amount: numAmount, riskProfile, answers, name: strategyName || null, selectedTickers: Array.from(selectedTickers) }),
       })
 
       if (!res.ok) {
@@ -441,6 +441,7 @@ export default function StrategyPage() {
           riskProfile,
           answers,
           name: strategyName || null,
+          selectedTickers: Array.from(selectedTickers),
           generateNow: true,
           strategyId: currentStrategyId,
         }),
