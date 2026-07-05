@@ -588,6 +588,7 @@ export async function POST(request: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache',
       'Connection': 'keep-alive',
+      'X-Accel-Buffering': 'no', // Critical: tells nginx to NOT buffer SSE — without this, heartbeats never reach the client during GLM reasoning and the connection times out ("Failed to fetch")
     },
   })
 }
