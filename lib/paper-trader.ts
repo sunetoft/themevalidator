@@ -262,8 +262,18 @@ export async function startPaperTrade(
     },
   });
 
-  // Try immediate fill of buy limit orders
-  await checkAndExecuteOrders(paperTrade.id);
+  // Try immediate fill of buy limit orders (only if NYSE is open)
+  if (isNYSEOpen()) {
+    await checkAndExecuteOrders(paperTrade.id);
+  } else {
+    await prisma.paperTradeLog.create({
+      data: {
+        paperTradeId: paperTrade.id,
+        action: "price_check",
+        details: `Trade created outside NYSE hours — orders will fill on next market open`,
+      },
+    });
+  }
 
   return { paperTradeId: paperTrade.id };
 }
@@ -310,10 +320,16 @@ export async function checkAndExecuteOrders(paperTradeId?: string) {
         data: {
           paperTradeId: trade.id,
           action: "price_check",
-          details: `Price check: ${nyseOpen ? "NYSE OPEN" : "NYSE CLOSED"} — checked ${tickerSet.size} tickers`,
+          details: `Price check: ${nyseOpen ? "NYSE OPEN" : "NYSE CLOSED"} — checked ${tickerSet.size} tickers${nyseOpen ? "" : " (orders not executed — market closed)"}`,
         },
       });
 
+      // Only fill orders when NYSE is actually open.
+      // Yahoo returns stale (last close) prices when market is closed, so
+      // filling against them would be unrealistic — especially on weekends
+      // or after hours. We still update position market values below for
+      // display purposes, but no buy/sell orders execute.
+      if (nyseOpen) {
       // Process pending orders
       for (const order of trade.orders) {
         if (order.status !== "pending") continue;
@@ -442,6 +458,7 @@ export async function checkAndExecuteOrders(paperTradeId?: string) {
           });
         }
       }
+      } // end if (nyseOpen)
 
       // Update positions with current prices + P&L
       const updatedPositions = await prisma.paperPosition.findMany({
