@@ -104,6 +104,27 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
 - `/thesis/[id]` remains the user's private authenticated thesis detail view
 - Analyze route auto-assigns theses to themes via LLM-suggested `themeName` (find-or-create by slug)
 
+### LLM Analysis Schema (Consolidated — July 2026)
+
+The LLM generates a **single `stocks[]` array** where each company object contains ALL
+analytical dimensions (ecosystem role, financial health, technicals, product evaluator,
+valuation/moat). The analyze and retry routes map this consolidated array back into the
+separate DB JSON fields (`ecosystemData`, `financialData`, `technicalData`,
+`valuationData`, `productEvaluator`) for backward compatibility with existing UI components.
+
+**New Thesis fields (July 2026):**
+- `productEvaluator` (Json) — `{ score, summary, perStock: [{ticker, flagshipProducts, pricingPower, pricingPowerEvidence, segmentGrowthHighlights, recentPartnerships, competitivePosition, productMoat}] }`
+- `stocksData` (Json) — The raw consolidated `stocks[]` array from the LLM (all dimensions per stock)
+
+**Product Evaluator** assesses whether companies have unique products that give them
+pricing power. For each stock: flagship products, pricing power (strong/moderate/weak),
+evidence from earnings (margin expansion, ASP increases), segment growth highlights,
+recent partnerships, competitive position (monopoly/dominant/challenger/commodity),
+and product moat type (patents/switching costs/network effects/scale/regulatory/none).
+
+⚠️ The retry route (`app/api/theses/[id]/retry/route.ts`) is kept in sync with the analyze
+route's prompt and enrichment pipeline. If you change the prompt in one, update both.
+
 ## Build & Deploy
 
 ```bash
