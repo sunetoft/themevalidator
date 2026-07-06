@@ -104,6 +104,9 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
 - `/thesis/[id]` redirects to `/themes/[themeId]` (merged July 2026 — single unified page)
 - The theme detail page is the single entry point for viewing thesis analysis AND taking actions
 - Analyze route auto-assigns theses to themes via LLM-suggested `themeName` (find-or-create by slug)
+- **Publish flow:** New themes/theses created during analysis default to `isPublic: false`.
+  Only admin can publish via the admin UI (PATCH `/api/admin/themes/[id]` sets `isPublic: true`
+  on the theme and syncs all child theses). Non-logged-in users see ONLY admin-published themes.
 
 ### Action Button Visibility Rules (Theme Detail Page)
 

@@ -485,8 +485,8 @@ export async function POST(request: NextRequest) {
                 name: themeName,
                 slug: themeSlug,
                 description: finalResult?.description ?? '',
-                isPublic: true,
-                publishedAt: new Date(),
+                isPublic: false,
+                publishedAt: null,
               },
             })
             themeId = newTheme.id
@@ -536,8 +536,8 @@ export async function POST(request: NextRequest) {
                 perStock: productEvalPerStock,
               },
               stocksData: stocks,
-              isPublic: true,
-              publishedAt: new Date(),
+              isPublic: false,
+              publishedAt: null,
               status: 'completed',
             },
           })
