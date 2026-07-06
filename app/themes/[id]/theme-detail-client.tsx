@@ -15,7 +15,8 @@ import {
   ArrowLeft, ArrowRight, Crown, BarChart3, Target,
   Building2, MessageSquare, AlertTriangle, Lock, ShieldCheck,
   ChevronUp, ChevronDown, TrendingUp, TrendingDown, Minus,
-  Zap, Layers, FileText, Plus, Loader2, Share2, CheckCircle2
+  Zap, Layers, FileText, Plus, Loader2, Share2, CheckCircle2,
+  Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getScoreHex } from '@/lib/scores'
@@ -924,6 +925,66 @@ export default function ThemeDetailClient({
           <div className="flex items-center justify-center py-20">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
           </div>
+        )}
+
+        {/* Sign Up CTA — non-logged-in visitors only */}
+        {!loading && !session && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mt-12 relative overflow-hidden rounded-2xl"
+          >
+            <div className="hero-gradient p-8 md:p-12">
+              <div className="relative z-10 text-center max-w-2xl mx-auto">
+                <div className="inline-flex items-center gap-2 mb-4 text-sm text-amber-300/90">
+                  <Sparkles className="w-4 h-4" />
+                  Unlock Full Analysis & Trading Tools
+                </div>
+                <h2 className="font-display text-2xl md:text-3xl font-bold text-white mb-3">
+                  Create your <span className="gold-text">free account</span> to get started
+                </h2>
+                <p className="text-white/70 text-base mb-8">
+                  Join ThemeInvestor to access AI-powered thesis analysis, paper trading, and real-time alerts.
+                </p>
+
+                {/* Feature list */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                    <Target className="w-5 h-5 text-amber-300 mb-2" />
+                    <h3 className="text-white font-semibold text-sm mb-1">AI Thesis Analysis</h3>
+                    <p className="text-white/60 text-xs">Deep-dive into sentiment, ecosystem, moats & bottlenecks</p>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                    <BarChart3 className="w-5 h-5 text-amber-300 mb-2" />
+                    <h3 className="text-white font-semibold text-sm mb-1">Paper Trading</h3>
+                    <p className="text-white/60 text-xs">Test strategies with limit orders, stops & position tracking</p>
+                  </div>
+                  <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">
+                    <Zap className="w-5 h-5 text-amber-300 mb-2" />
+                    <h3 className="text-white font-semibold text-sm mb-1">Real-time Alerts</h3>
+                    <p className="text-white/60 text-xs">Get notified on thesis events, breakouts & earnings</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                  <Link
+                    href="/auth?callbackUrl=/themes"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-amber-500 px-6 py-3 text-sm font-semibold text-slate-900 hover:bg-amber-600 transition-colors"
+                  >
+                    Sign Up Free
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                  <Link
+                    href="/auth?callbackUrl=/themes"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg bg-white/20 px-6 py-3 text-sm font-medium text-white hover:bg-white/30 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
       </div>
     </div>
