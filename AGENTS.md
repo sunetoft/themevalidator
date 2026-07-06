@@ -101,8 +101,17 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
 - `Thesis.themeId` → nullable FK → `Theme`
 - Public gallery at `/themes` shows published `Theme` cards with aggregated scores
 - Theme detail at `/themes/[id]` shows theme overview + expandable thesis analysis cards
-- `/thesis/[id]` remains the user's private authenticated thesis detail view
+- `/thesis/[id]` redirects to `/themes/[themeId]` (merged July 2026 — single unified page)
+- The theme detail page is the single entry point for viewing thesis analysis AND taking actions
 - Analyze route auto-assigns theses to themes via LLM-suggested `themeName` (find-or-create by slug)
+
+### Action Button Visibility Rules (Theme Detail Page)
+
+| Action | Visible To |
+|--------|-----------|
+| Sync to GraphDB | Admin only (`role === 'admin'` + thesis `status === 'completed'`) |
+| Create Trading Strategy | Paying users (`hasSubscription === true`) + Admin |
+| Add Ticker | Admin only (`role === 'admin'`) |
 
 ### LLM Analysis Schema (Consolidated — July 2026)
 

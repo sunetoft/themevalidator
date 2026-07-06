@@ -36,11 +36,12 @@ export async function POST(
   }
 
   const userId = (session.user as any)?.id
+  const userRole = (session.user as any)?.role
   const thesisId = params.id
 
-  // Verify thesis belongs to user
+  // Verify thesis belongs to user (admin can access any thesis)
   const thesis = await prisma.thesis.findFirst({
-    where: { id: thesisId, userId },
+    where: userRole === 'admin' ? { id: thesisId } : { id: thesisId, userId },
     include: { basketMembers: true },
   })
 

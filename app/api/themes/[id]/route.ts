@@ -37,6 +37,8 @@ export async function GET(
           earningsData: true,
           productEvaluator: true,
           themeEtfs: true,
+          graphSyncedAt: true,
+          status: true,
           publishedAt: true,
           basketMembers: {
             select: {
