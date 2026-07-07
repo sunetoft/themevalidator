@@ -206,8 +206,8 @@ export default function StockChartModal({ ticker, companyName, onClose }: Props)
                       <AreaChart data={data.oneYear} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                         <defs>
                           <linearGradient id="color1Y" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            <stop offset="5%" stopColor="hsl(142 60% 45%)" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="hsl(142 60% 45%)" stopOpacity={0} />
                           </linearGradient>
                         </defs>
                         <XAxis
@@ -233,7 +233,7 @@ export default function StockChartModal({ ticker, companyName, onClose }: Props)
                         <Area
                           type="monotone"
                           dataKey="price"
-                          stroke="#10b981"
+                          stroke="hsl(142 60% 45%)"
                           strokeWidth={2}
                           fill="url(#color1Y)"
                           animationDuration={600}

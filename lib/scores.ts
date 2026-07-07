@@ -16,11 +16,11 @@ export function getScoreTier(score: number): ScoreTier {
   return "weak";
 }
 
-/** Hex colors for inline styles (radar charts, SVG, etc.) */
+/** Hex colors for inline styles (radar charts, SVG, etc.) — derived from CSS design tokens */
 export const SCORE_HEX: Record<ScoreTier, string> = {
-  strong: "#10b981", // emerald-500
-  moderate: "#eab308", // yellow-500
-  weak: "#ef4444", // red-500
+  strong: "hsl(142 60% 45%)",   // --success
+  moderate: "hsl(38 80% 50%)",  // --warning
+  weak: "hsl(0 84% 60%)",       // --destructive
 };
 
 export function getScoreHex(score: number | null): string {
@@ -30,9 +30,9 @@ export function getScoreHex(score: number | null): string {
 
 /** Tailwind text color classes */
 export const SCORE_TEXT: Record<ScoreTier, string> = {
-  strong: "text-emerald-500",
-  moderate: "text-yellow-500",
-  weak: "text-red-500",
+  strong: "text-success",
+  moderate: "text-warning",
+  weak: "text-destructive",
 };
 
 export function getScoreTextClass(score: number | null): string {
@@ -42,9 +42,9 @@ export function getScoreTextClass(score: number | null): string {
 
 /** Tailwind bg color classes */
 export const SCORE_BG: Record<ScoreTier, string> = {
-  strong: "bg-emerald-500",
-  moderate: "bg-yellow-500",
-  weak: "bg-red-500",
+  strong: "bg-success",
+  moderate: "bg-warning",
+  weak: "bg-destructive",
 };
 
 export function getScoreBarClass(score: number | null): string {
@@ -54,9 +54,9 @@ export function getScoreBarClass(score: number | null): string {
 
 /** Combined text + bg classes for badges/pills */
 export const SCORE_BADGE: Record<ScoreTier, string> = {
-  strong: "text-emerald-500 bg-emerald-500/10",
-  moderate: "text-yellow-500 bg-yellow-500/10",
-  weak: "text-red-500 bg-red-500/10",
+  strong: "text-success bg-success/10",
+  moderate: "text-warning bg-warning/10",
+  weak: "text-destructive bg-destructive/10",
 };
 
 export function getScoreBadgeClass(score: number | null): string {

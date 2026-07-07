@@ -113,7 +113,7 @@ function SyncIcon({
 
   const isTS = target === 'tradescouter'
   const label = isTS ? 'Add to TradeScouter' : 'Add to OptionLookup'
-  const activeColor = isTS ? 'text-cyan-400 hover:text-cyan-300' : 'text-emerald-400 hover:text-emerald-300'
+  const activeColor = isTS ? 'text-cyan-400 hover:text-cyan-300' : 'text-success hover:text-success/80'
 
   return (
     <button

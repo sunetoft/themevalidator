@@ -71,8 +71,8 @@ export default function PerformanceChart({ tradeId, initialCapital }: Props) {
 
   const lastPnl = snapshots[snapshots.length - 1].pnl
   const isPositive = lastPnl >= 0
-  const lineColor = isPositive ? '#10b981' : '#ef4444'
-  const fillColor = isPositive ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'
+  const lineColor = isPositive ? 'hsl(142 60% 45%)' : 'hsl(0 84% 60%)'
+  const fillColor = isPositive ? 'hsla(142 60% 45% / 0.1)' : 'hsla(0 84% 60% / 0.1)'
 
   // Baseline (initial capital) position
   const baselineY = padding + chartHeight - ((initialCapital - minVal) / range) * chartHeight

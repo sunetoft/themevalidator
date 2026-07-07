@@ -20,15 +20,3 @@ export function formatNumber(num: number): string {
   if (num >= 1e3) return (num / 1e3).toFixed(2) + "K";
   return num.toFixed(2);
 }
-
-export function getScoreColor(score: number): string {
-  if (score >= 70) return "text-primary";
-  if (score >= 40) return "text-amber-500";
-  return "text-red-500";
-}
-
-export function getScoreBg(score: number): string {
-  if (score >= 70) return "bg-primary";
-  if (score >= 40) return "bg-amber-500";
-  return "bg-red-500";
-}

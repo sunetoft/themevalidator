@@ -5,7 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "sune@stdigital.dk";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? (() => { throw new Error('ADMIN_EMAIL is required') })();
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),

@@ -10,6 +10,7 @@ import {
   AlertTriangle, Layers, Plus, ChevronDown, ChevronUp, FolderInput, FolderPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { getScoreHex } from '@/lib/scores'
 
 interface ThemeData {
   id: string
@@ -426,7 +427,7 @@ export default function AdminPage() {
                                         className="flex items-center gap-3 flex-1 min-w-0 text-left group"
                                       >
                                         <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0"
-                                          style={{ borderColor: thesis.overallScore && thesis.overallScore >= 70 ? '#10b981' : '#6b7280', color: thesis.overallScore && thesis.overallScore >= 70 ? '#10b981' : '#6b7280' }}>
+                                          style={{ borderColor: getScoreHex(thesis.overallScore), color: getScoreHex(thesis.overallScore) }}>
                                           {thesis.overallScore ?? '—'}
                                         </div>
                                         <div className="flex-1 min-w-0">
@@ -489,7 +490,7 @@ export default function AdminPage() {
                             className="flex items-center gap-3 flex-1 min-w-0 text-left group"
                           >
                             <div className="w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold flex-shrink-0"
-                              style={{ borderColor: thesis.overallScore && thesis.overallScore >= 70 ? '#10b981' : '#6b7280', color: thesis.overallScore && thesis.overallScore >= 70 ? '#10b981' : '#6b7280' }}>
+                              style={{ borderColor: getScoreHex(thesis.overallScore), color: getScoreHex(thesis.overallScore) }}>
                               {thesis.overallScore ?? '—'}
                             </div>
                             <div className="flex-1 min-w-0">
