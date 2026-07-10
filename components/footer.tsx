@@ -8,6 +8,7 @@ const familySites = [
   { label: "OptionLookup", href: "https://optionlookup.bunnystocks.com" },
   { label: "HoldSell", href: "https://holdsell.bunnystocks.com" },
   { label: "TradeScouter", href: "https://tradescouter.bunnystocks.com" },
+  { label: "GapUpTracker", href: "https://gapuptracker.bunnystocks.com" },
 ];
 
 const internalLinks = [

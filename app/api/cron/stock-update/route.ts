@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const internalKey = process.env.PAPER_TRADE_CRON_KEY
 
-  if (internalKey && authHeader !== `Bearer ${internalKey}`) {
+  if (!internalKey || authHeader !== `Bearer ${internalKey}`) {
     const { getServerSession } = await import('next-auth')
     const { authOptions } = await import('@/lib/auth')
     const session = await getServerSession(authOptions)
@@ -171,7 +171,3 @@ export async function POST(request: NextRequest) {
   })
 }
 
-// Also allow GET for easy health-check / manual trigger from browser
-export async function GET(request: NextRequest) {
-  return POST(request)
-}

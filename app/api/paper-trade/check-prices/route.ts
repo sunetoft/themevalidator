@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const internalKey = process.env.PAPER_TRADE_CRON_KEY
 
-  if (internalKey && authHeader !== `Bearer ${internalKey}`) {
+  if (!internalKey || authHeader !== `Bearer ${internalKey}`) {
     // Also allow authenticated users to trigger manually
     const { getServerSession } = await import('next-auth')
     const { authOptions } = await import('@/lib/auth')
