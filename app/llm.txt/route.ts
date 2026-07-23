@@ -15,6 +15,9 @@ export async function GET() {
 - [Pricing](/pricing) — subscription plans
 - [Settings](/settings) — user settings
 - [Strategies](/strategies) — trading strategies
+- [Users](/users) — registered users directory
+- [Login](/auth) — sign in
+- [Reset Password](/reset-password) — password reset
 
 ## API
 - [Analyze](/api/analyze) — AI-powered thesis analysis (auth required)
