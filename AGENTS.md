@@ -181,12 +181,28 @@ app/                    Next.js App Router
   admin/                Admin panel
   settings/             User settings
   pricing/              Stripe pricing page
+  compare/              Theme comparison view (select 2-3 themes, side-by-side)
+  themes/               Public theme gallery + theme detail pages
 components/             React components (Radix UI based)
 hooks/                  Custom React hooks
 lib/                    Shared utilities (auth, db, email, LLM, etc.)
 prisma/                 Prisma schema + migrations
 scripts/                Cron/maintenance scripts
 ```
+
+## Theme Comparison View (`/compare`)
+
+Public page (no auth required) where users select 2–3 published themes and view them
+side-by-side. Data served by `GET /api/themes/compare?ids=id1,id2,id3`.
+
+**Sections:**
+1. **Thesis Score Comparison** — Radar chart overlay (all themes' 6-dimension scores on one
+   chart) + numeric score table with 🏆 trophy icons marking the winner per dimension.
+2. **Basket Composition** — Stock tickers per theme in colored columns + shared holdings
+   overlap analysis (tickers appearing in multiple themes highlighted).
+3. **Paper Trade Performance** — Active trade count, total value, avg/best/worst P&L %.
+4. **Sentiment & Social Signals** — Bar chart comparing sentiment scores + tweet counts.
+5. **At a Glance** — Summary table of winners across all dimensions + best P&L + largest basket.
 
 ## Cron Jobs
 

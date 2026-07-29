@@ -20,6 +20,7 @@ import {
   Settings,
   UserCircle2,
   ChevronDown,
+  GitCompare,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,7 @@ export default function Header() {
   // Main nav links (content navigation)
   const navLinks = [
     { href: "/themes", label: "Themes", icon: Globe },
+    { href: "/compare", label: "Compare", icon: GitCompare },
     { href: "/strategies", label: "Strategies", icon: ListChecks },
     { href: "/paper-trades", label: "Paper Trades", icon: TrendingUp },
   ];
@@ -108,6 +110,12 @@ export default function Header() {
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               >
                 Browse Themes
+              </Link>
+              <Link
+                href="/compare"
+                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              >
+                Compare
               </Link>
               <Link
                 href="/pricing"
@@ -342,6 +350,9 @@ export default function Header() {
           <div className="flex flex-col gap-3">
             <Link href="/themes" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
               Browse Themes
+            </Link>
+            <Link href="/compare" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
+              Compare
             </Link>
             <Link href="/pricing" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
               Pricing
