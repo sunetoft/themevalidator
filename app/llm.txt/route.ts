@@ -11,11 +11,12 @@ export async function GET() {
 - **Publish flow:** New themes/theses default to \`isPublic: false\`. Only admin can publish via the admin UI. Non-logged-in users see ONLY admin-published themes in the public gallery.
 - **Auth:** NextAuth.js with Google OAuth + credentials. Most API routes require auth via \`getServerSession(authOptions)\`.
 
-## Public Pages (16 routes)
+## Public Pages (17 routes)
 - [Home](/) — landing page with hero, features, and CTA
 - [Dashboard](/dashboard) — user dashboard with active theses, stats, recent activity
 - [Themes](/themes) — public theme gallery with published analyses, search/filter
 - [Themes Detail](/themes/[id]) — theme overview + expandable thesis analysis cards (merged page; action buttons for sync-graph, create strategy, add ticker)
+- [Compare Themes](/compare) — select 2-3 themes for side-by-side comparison: scores, basket overlap, performance, sentiment radar charts
 - [Analyze](/analyze) — create new investment thesis analysis; enter thesis description + stock tickers
 - [Paper Trades](/paper-trades) — paper trading dashboard; list all active/completed trades
 - [Admin](/admin) — admin panel (publish themes, sync to FalkorDB, manage users/strategies/paper trades)
@@ -49,6 +50,7 @@ export async function GET() {
 
 ### Themes
 - [Theme CRUD](/api/themes/[id]) — GET (public); get theme detail with theses; PATCH (auth); update theme metadata
+- [Theme Compare](/api/themes/compare) — POST (public); get side-by-side comparison data for 2-3 themes (scores, basket overlap, sentiment, performance)
 
 ### Paper Trading
 - [Paper Trades List](/api/paper-trades) — GET (auth); list user's paper trades; POST (auth); create paper trade
