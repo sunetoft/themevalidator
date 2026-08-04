@@ -46,6 +46,9 @@ Copy `.env` (not committed) and fill in:
 | `CROSS_SITE_API_KEY` | Shared secret for inter-app API calls |
 | `TRADESCOUTER_INTERNAL_URL` | `http://localhost:3013` |
 | `OPTIONLOOKUP_INTERNAL_URL` | `http://localhost:3011` |
+| `SSO_PROVIDER_URL` | `https://dashboard.bunnystocks.com` — BunnyStocks IdP URL |
+| `SSO_CLIENT_ID` | `themeinvestor` — This app's SSO client ID |
+| `SSO_CLIENT_SECRET` | Same value as `CROSS_SITE_API_KEY` — SSO shared secret |
 | `FALKORDB_HOST` | FalkorDB graph database host |
 | `FALKORDB_PORT` | FalkorDB port (6379) |
 | `FALKORDB_PASSWORD` | FalkorDB auth password |

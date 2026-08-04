@@ -96,6 +96,8 @@ Please update the analysis sections to incorporate the new stock. Preserve all e
       jsonMode: true,
       maxTokens: 6000,
       temperature: 0.5,
+      source: "web",
+      endpoint: "reanalyze",
     });
 
     let updated: any;

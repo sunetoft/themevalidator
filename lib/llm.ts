@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { prisma } from "@/lib/prisma";
 
 /**
  * Z.AI (Zhipu AI) — OpenAI-compatible LLM client.
@@ -16,6 +17,10 @@ const client = new OpenAI({
 
 export const LLM_MODEL = process.env.LLM_MODEL || "glm-5.1";
 
+/** GLM pricing per million tokens (Z.AI GLM-5.1) */
+const GLM_INPUT_COST_PER_M = 0.148;   // $0.148/M input tokens
+const GLM_OUTPUT_COST_PER_M = 0.296;  // $0.296/M output tokens
+
 export interface LLMMessage {
   role: "system" | "user" | "assistant";
   content: string | OpenAI.Chat.Completions.ChatCompletionContentPart[];
@@ -24,6 +29,8 @@ export interface LLMMessage {
 /**
  * Standard chat completion (non-streaming).
  * Uses JSON mode when responseFormat is "json_object".
+ *
+ * Logs token usage to the database for dashboard aggregation.
  */
 export async function chatComplete(
   messages: LLMMessage[],
@@ -31,6 +38,10 @@ export async function chatComplete(
     maxTokens?: number;
     jsonMode?: boolean;
     temperature?: number;
+    /** Source of the request (e.g., 'web', 'cron', 'api') — defaults to 'web' */
+    source?: string;
+    /** Optional endpoint label for grouping (e.g., 'analyze', 'reanalyze', 'add-ticker') */
+    endpoint?: string;
   } = {}
 ) {
   const response = await client.chat.completions.create({
@@ -40,6 +51,28 @@ export async function chatComplete(
     temperature: options.temperature ?? 0.7,
     ...(options.jsonMode ? { response_format: { type: "json_object" } } : {}),
   });
+
+  // Log token usage to DB (fire-and-forget — don't block the response)
+  const usage = response.usage;
+  if (usage) {
+    const inputCost = (usage.prompt_tokens / 1_000_000) * GLM_INPUT_COST_PER_M;
+    const outputCost = (usage.completion_tokens / 1_000_000) * GLM_OUTPUT_COST_PER_M;
+    prisma.tokenUsage.create({
+      data: {
+        app: "themevalidator",
+        model: LLM_MODEL,
+        source: options.source ?? "web",
+        tokensIn: usage.prompt_tokens,
+        tokensOut: usage.completion_tokens,
+        tokensTotal: usage.total_tokens,
+        costUsd: Math.round((inputCost + outputCost) * 1_000_000) / 1_000_000,
+        endpoint: options.endpoint ?? null,
+      },
+    }).catch(err => {
+      console.error("[tokenUsage] Failed to log token usage:", err?.message);
+    });
+  }
+
   return response.choices[0]?.message?.content || "";
 }
 
@@ -51,6 +84,12 @@ export async function chatComplete(
  * If we only yield `content`, the SSE stream goes silent for 30-60s during
  * reasoning, causing client/proxy timeouts (ERR_INVALID_STATE: Controller
  * already closed). The `onReasoning` callback lets callers send heartbeats.
+ *
+ * NOTE: Streaming responses from OpenAI-compatible APIs typically do NOT
+ * include `usage` in the stream chunks. Token usage is only available on the
+ * final chunk for some providers, but GLM does not provide it in stream mode.
+ * Therefore, we skip usage logging for streaming calls. If usage becomes
+ * available on the final chunk, it can be captured here.
  */
 export async function* chatStream(
   messages: LLMMessage[],

@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       ] as any[]
 
       try {
-        const extractText = await chatComplete(pdfMessages, { maxTokens: 4000 })
+        const extractText = await chatComplete(pdfMessages, { maxTokens: 4000, source: "web", endpoint: "analyze-pdf-extract" })
         if (extractText) {
           thesisText = extractText
         }

@@ -4,6 +4,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { BunnyStocksSsoProvider } from "@/lib/sso-provider";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? (() => { throw new Error('ADMIN_EMAIL is required') })();
 
@@ -13,6 +14,12 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+    }),
+    BunnyStocksSsoProvider({
+      issuer: process.env.SSO_PROVIDER_URL || "https://dashboard.bunnystocks.com",
+      clientId: process.env.SSO_CLIENT_ID || "themeinvestor",
+      clientSecret: (process.env.SSO_CLIENT_SECRET || process.env.CROSS_SITE_API_KEY || "") as string,
+      name: "BunnyStocks SSO",
     }),
     CredentialsProvider({
       name: "credentials",

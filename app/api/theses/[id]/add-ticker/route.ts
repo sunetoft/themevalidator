@@ -76,7 +76,7 @@ export async function POST(
       },
     ]
 
-    const content = await chatComplete(messages, { jsonMode: true, maxTokens: 2000 })
+    const content = await chatComplete(messages, { jsonMode: true, maxTokens: 2000, source: "web", endpoint: "add-ticker" })
 
     let analysis: any
     try {

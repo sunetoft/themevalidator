@@ -309,3 +309,21 @@ model ThesisAlert {
   @@index([severity])
   @@index([createdAt])
 }
+
+model TokenUsage {
+  id          String   @id @default(cuid())
+  loggedAt    DateTime @default(now())
+  app         String   @default("themevalidator")
+  model       String
+  source      String   @default("web")
+  tokensIn    Int
+  tokensOut   Int
+  tokensTotal Int
+  costUsd     Float    @default(0)
+  endpoint    String?
+
+  @@index([loggedAt])
+  @@index([app])
+  @@index([model])
+  @@index([source])
+}
