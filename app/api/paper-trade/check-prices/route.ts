@@ -9,18 +9,12 @@ import { checkAndExecuteOrders, isNYSEOpen } from '@/lib/paper-trader'
  * It can also be triggered manually.
  */
 export async function POST(request: NextRequest) {
-  // Verify internal API key for scheduled task authentication
+  // Verify internal API key for scheduled task authentication (Bearer only)
   const authHeader = request.headers.get('authorization')
   const internalKey = process.env.PAPER_TRADE_CRON_KEY
 
   if (!internalKey || authHeader !== `Bearer ${internalKey}`) {
-    // Also allow authenticated users to trigger manually
-    const { getServerSession } = await import('next-auth')
-    const { authOptions } = await import('@/lib/auth')
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const nyseOpen = isNYSEOpen()

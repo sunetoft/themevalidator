@@ -54,10 +54,10 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
-        token.role = (user as any).role ?? "user";
+        token.role = user.role ?? "user";
 
         // Auto-assign admin role if email matches ADMIN_EMAIL
-        if ((user as any).email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
+        if (user.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
           token.role = "admin";
         }
       }
@@ -81,9 +81,9 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).role = token.role ?? "user";
-        (session.user as any).hasSubscription = token.hasSubscription ?? false;
+        session.user.id = token.id as string;
+        session.user.role = (token.role ?? "user") as string;
+        session.user.hasSubscription = token.hasSubscription ?? false;
       }
       return session;
     },
