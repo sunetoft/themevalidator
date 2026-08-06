@@ -87,6 +87,8 @@ export async function GET() {
 - [TradeScouter Status](/api/tradescouter/status) — GET; check TradeScouter connection health
 - [OptionLookup Sync](/api/optionlookup/sync) — POST (api key); sync data to/from OptionLookup
 - [OptionLookup Status](/api/optionlookup/status) — GET; check OptionLookup connection health
+- [External Dashboard Theses](/api/external/dashboard/theses) — GET (api key); expose user's theses to sibling-app dashboards
+- [External Dashboard Token Usage](/api/external/dashboard/token-usage) — GET (api key); expose LLM token usage stats to sibling-app dashboards
 
 ### Cron Jobs
 - [Cron Stock Update](/api/cron/stock-update) — POST (cron key); update cached stock prices for paper trades
