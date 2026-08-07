@@ -1,4 +1,4 @@
-import { DM_Sans, Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
+import './fonts.css';
 import './globals.css'
 import { ThemeProvider } from 'next-themes'
 import Providers from '@/components/providers'
@@ -6,10 +6,6 @@ import Header from '@/components/header'
 import { Footer } from '@/components/footer'
 import { Toaster } from '@/components/ui/sonner'
 import ChunkLoadErrorHandler from '@/components/chunk-load-error-handler'
-
-const dmSans = DM_Sans({ subsets: ['latin'], variable: '--font-sans' })
-const jakartaSans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-display' })
-const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' })
 
 export const METADATA_DESCRIPTION =
   'Validate emerging investment themes with AI-powered analysis, sentiment tracking, and ecosystem mapping.'
@@ -66,7 +62,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${dmSans.variable} ${jakartaSans.variable} ${jetbrainsMono.variable} font-sans`}>
+      <body className={`font-sans`}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

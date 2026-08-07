@@ -4,6 +4,10 @@
 
 @layer base {
   :root {
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-display: 'Plus Jakarta Sans', var(--font-sans), sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+
     --background: 210 20% 98%;
     --foreground: 220 30% 10%;
 
