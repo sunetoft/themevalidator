@@ -110,6 +110,11 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
 - **Publish flow:** New themes/theses created during analysis default to `isPublic: false`.
   Only admin can publish via the admin UI (PATCH `/api/admin/themes/[id]` sets `isPublic: true`
   on the theme and syncs all child theses). Non-logged-in users see ONLY admin-published themes.
+- **View access (fixed Aug 2026):** `/themes/[id]` (page) and `GET /api/themes/[id]` render a theme
+  if it is public OR the requester owns a thesis in it OR is admin. Non-public themes show only the
+  owner's theses to non-admin owners (admins see all). This is what lets a user see their own
+  just-created (non-public) analysis — the post-analysis redirect `/thesis/[id]` → `/themes/[themeId]`
+  must NOT 404 for the owner. Anonymous visitors still get 404 on non-public themes.
 
 ### Action Button Visibility Rules (Theme Detail Page)
 

@@ -1,24 +1,41 @@
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// GET /api/themes/[id] — public theme detail with all child theses (no auth required)
+// GET /api/themes/[id] — theme detail with all child theses.
+// Public themes are open to everyone. Non-public themes (e.g. freshly created
+// analyses that have not been admin-published yet) are visible to their owner
+// and to admins only.
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as any)?.id as string | undefined;
+  const isAdmin = (session?.user as any)?.role === "admin";
+
   const theme = await prisma.theme.findFirst({
-    where: { id: params.id, isPublic: true },
+    where: {
+      id: params.id,
+      OR: [
+        { isPublic: true },
+        userId ? { theses: { some: { userId } } } : {},
+      ],
+    },
     select: {
       id: true,
       name: true,
       slug: true,
       description: true,
       publishedAt: true,
+      isPublic: true,
       theses: {
         select: {
           id: true,
+          userId: true,
           title: true,
           description: true,
           overallScore: true,
@@ -99,8 +116,14 @@ export async function GET(
     return NextResponse.json({ error: "Theme not found" }, { status: 404 });
   }
 
+  // Non-admin owners of a non-public theme see only their own theses.
+  const visibleTheses =
+    theme.isPublic || isAdmin
+      ? theme.theses
+      : theme.theses.filter((t) => t.userId === userId);
+
   // Compute per-thesis aggregate stats
-  const thesesWithAggregates = theme.theses.map((thesis) => {
+  const thesesWithAggregates = visibleTheses.map((thesis) => {
     const trades = thesis.paperTrades;
     const aggregate =
       trades.length > 0
@@ -148,15 +171,15 @@ export async function GET(
           }
         : null;
 
-    // Strip individual trade data, keep aggregate
-    const { paperTrades: _, ...thesisData } = thesis;
+    // Strip individual trade data, keep aggregate (and internal userId)
+    const { paperTrades: _, userId: __, ...thesisData } = thesis;
     return { ...thesisData, aggregate };
   });
 
   // Merge ETFs across theses (deduplicate by symbol)
   const allEtfs: any[] = [];
   const etfSymbols = new Set<string>();
-  for (const t of theme.theses) {
+  for (const t of visibleTheses) {
     const etfs = (t.themeEtfs as any[]) ?? [];
     for (const etf of etfs) {
       if (etf?.symbol && !etfSymbols.has(etf.symbol)) {
@@ -177,7 +200,7 @@ export async function GET(
   ] as const;
   const themeScores: Record<string, number | null> = {};
   for (const field of scoreFields) {
-    const values = theme.theses
+    const values = visibleTheses
       .map((t) => t[field])
       .filter((v): v is number => v !== null);
     themeScores[field] =
@@ -186,8 +209,10 @@ export async function GET(
         : null;
   }
 
+  const { isPublic: _isPublic, theses: _theses, ...themeMeta } = theme;
+
   return NextResponse.json({
-    ...theme,
+    ...themeMeta,
     theses: thesesWithAggregates,
     mergedEtfs: allEtfs,
     themeScores,
