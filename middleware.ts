@@ -7,7 +7,6 @@ const PUBLIC_ROUTES = [
   "/themes",
   "/pricing",
   "/auth",
-  "/signup",
 ];
 
 const PUBLIC_PATTERNS = [
@@ -32,6 +31,8 @@ const AUTH_REQUIRED_PATTERNS = [
   /^\/settings\/.*/,
   /^\/admin\/.*/,
   /^\/api\/admin\/.*/,
+  /^\/users(\/.*)?$/,
+  /^\/api\/users(\/.*)?$/,
 ];
 
 export async function middleware(req: NextRequest) {
@@ -97,6 +98,8 @@ export const config = {
     "/settings/:path*",
     "/admin/:path*",
     "/api/admin/:path*",
+    "/users/:path*",
+    "/api/users/:path*",
     // Public routes (middleware runs but allows through)
     "/themes/:path*",
   ],
