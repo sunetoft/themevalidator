@@ -15,6 +15,7 @@ const nextConfig = {
   poweredByHeader: false,
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client'],
+    instrumentationHook: true,
   },
   webpack: (config) => {
     config.externals = [...(config.externals || []), 'canvas', 'jsdom'];
