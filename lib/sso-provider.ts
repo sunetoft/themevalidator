@@ -54,6 +54,9 @@ export function BunnyStocksSsoProvider(options: SsoProviderOptions): any {
     type: "oauth",
     clientId,
     clientSecret,
+    client: {
+      token_endpoint_auth_method: "client_secret_post",
+    },
     authorization: {
       url: authorizationEndpoint,
       params: {

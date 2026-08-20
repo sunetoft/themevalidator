@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff, ArrowLeft } from 'lucide-react'
+import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Mode = 'login' | 'signup' | 'forgot-password'
@@ -219,6 +219,16 @@ export default function AuthPage() {
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
                   {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
+                </button>
+
+                {/* BunnyStocks SSO */}
+                <button
+                  type="button"
+                  onClick={() => signIn('bunnystocks-sso', { callbackUrl: '/dashboard' })}
+                  className="w-full py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all flex items-center justify-center gap-3"
+                >
+                  <ShieldCheck className="w-5 h-5 text-primary" />
+                  {isLogin ? 'Sign in with BunnyStocks' : 'Sign up with BunnyStocks'}
                 </button>
 
                 <div className="relative">
