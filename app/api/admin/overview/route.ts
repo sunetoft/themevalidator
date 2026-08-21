@@ -122,11 +122,17 @@ export async function GET() {
     orderBy: { createdAt: 'desc' },
   })
 
+  // Active/paused directive count for the admin tab badge
+  const directives = await prisma.directive.count({
+    where: { status: { in: ['active', 'paused'] } },
+  })
+
   return NextResponse.json({
     themes: JSON.parse(JSON.stringify(themes)),
     theses: JSON.parse(JSON.stringify(theses)),
     strategies: JSON.parse(JSON.stringify(strategies)),
     paperTrades: JSON.parse(JSON.stringify(paperTrades)),
     users: JSON.parse(JSON.stringify(users)),
+    directives,
   })
 }

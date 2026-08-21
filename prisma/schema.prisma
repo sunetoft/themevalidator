@@ -24,6 +24,7 @@ model User {
   subscription    Subscription?
   theses          Thesis[]
   tradeStrategies TradeStrategy[]
+  directives      Directive[]
 }
 
 model Account {
@@ -71,6 +72,7 @@ model Theme {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   theses      Thesis[]
+  directives  Directive[]
 
   @@index([isPublic])
   @@index([createdAt])
@@ -326,4 +328,51 @@ model TokenUsage {
   @@index([app])
   @@index([model])
   @@index([source])
+}
+
+model Directive {
+  id                 String           @id @default(cuid())
+  userId             String?
+  themeId            String?
+  theme              String           // canonical slug/name (free text; may reference a Theme)
+  tickers            Json             @default("[]") // string[]
+  tags               Json             @default("[]") // string[]
+  nominalWeight      Float            @default(1.5)
+  decayFn            String           @default("linear") // linear | none
+  ttlDays            Float            @default(30)
+  startedAt          DateTime         @default(now())
+  status             String           @default("active") // active | paused | expired | archived
+  pausedAt           DateTime?
+  resumeAt           DateTime?
+  totalPausedSeconds Float            @default(0)
+  scope              String           @default("both") // collector | scanner | both
+  addedBy            String?
+  source             String           @default("web")
+  reason             String?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  events             DirectiveEvent[]
+  user               User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  themeRel           Theme?           @relation(fields: [themeId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([themeId])
+  @@index([userId])
+}
+
+model DirectiveEvent {
+  id          String    @id @default(cuid())
+  directiveId String
+  action      String    // create | update | pause | resume | drop | extend | expire | note
+  field       String?
+  oldValue    String?
+  newValue    String?
+  actor       String?
+  source      String?
+  reason      String?
+  createdAt   DateTime  @default(now())
+  directive   Directive @relation(fields: [directiveId], references: [id], onDelete: Cascade)
+
+  @@index([directiveId])
+  @@index([createdAt])
 }
