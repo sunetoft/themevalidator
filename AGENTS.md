@@ -138,6 +138,9 @@ the admin page (`app/admin/page.tsx` + `app/admin/directives-client.tsx`).
   auth, returns active directives with `effectiveWeight` + `remainingDays`. Used by
   the Hermes agent (thesis-signal-collector) to bias its search mesh. Postgres is
   now the single source of truth (supersedes the old agent-side SQLite `theme` CLI).
+- **Watchdog endpoint:** `GET /api/directives/watchdog` — Bearer `CROSS_SITE_API_KEY`,
+  returns `expiringSoon` (active, ≤3d left) + `stalePaused` (paused >14d) for the
+  daily cron watchdog (`theme_directives_watchdog.py`).
 - **Pause semantics:** pause FREEZES the clock (weight→1.0, TTL stops); resume
   restores the remaining window (totalPausedSeconds accrues on resume).
 
