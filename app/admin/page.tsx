@@ -7,11 +7,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Shield, Globe, Target, TrendingUp, Users, Trash2,
   Loader2, Mail, Crown, ExternalLink, CheckCircle2, XCircle,
-  AlertTriangle, Layers, Plus, ChevronDown, ChevronUp, FolderInput, FolderPlus, Zap
+  AlertTriangle, Layers, Plus, ChevronDown, ChevronUp, FolderInput, FolderPlus
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getScoreHex } from '@/lib/scores'
-import DirectivesClient from './directives-client'
 
 interface ThemeData {
   id: string
@@ -80,10 +79,9 @@ interface AdminData {
     } | null
     _count: { theses: number; paperTrades: number; tradeStrategies: number }
   }>
-  directives: number
 }
 
-type Tab = 'themes' | 'strategies' | 'trades' | 'users' | 'directives'
+type Tab = 'themes' | 'strategies' | 'trades' | 'users'
 
 export default function AdminPage() {
   const { data: session, status } = useSession()
@@ -225,7 +223,6 @@ export default function AdminPage() {
     { key: 'strategies', label: 'Strategies', icon: Target, count: data.strategies.length },
     { key: 'trades', label: 'Paper Trades', icon: TrendingUp, count: data.paperTrades.length },
     { key: 'users', label: 'Users', icon: Users, count: data.users.length },
-    { key: 'directives', label: 'Directives', icon: Zap, count: data.directives },
   ]
 
   // Group theses by theme
@@ -719,9 +716,6 @@ export default function AdminPage() {
                 </table>
               </div>
             )}
-
-            {/* DIRECTIVES TAB */}
-            {tab === 'directives' && <DirectivesClient />}
           </motion.div>
         </AnimatePresence>
       </div>

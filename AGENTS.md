@@ -94,8 +94,7 @@ npx prisma studio        # GUI browser
 
 **Models:** User, Account, Session, VerificationToken, **Theme**, Thesis, TradeStrategy,
 PaperTrade, PaperOrder, PaperPosition, PaperTradeLog, PaperTradeSnapshot,
-ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAlert,
-**Directive**, **DirectiveEvent**
+ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAlert
 
 **Theme vs Thesis architecture:**
 - `Theme` = macro investment category (e.g., "AI Infrastructure Buildout") — the parent
@@ -116,33 +115,6 @@ ThemeMember (basket stocks on a Thesis), PasswordReset, Subscription, ThesisAler
   owner's theses to non-admin owners (admins see all). This is what lets a user see their own
   just-created (non-public) analysis — the post-analysis redirect `/thesis/[id]` → `/themes/[themeId]`
   must NOT 404 for the owner. Anonymous visitors still get 404 on non-public themes.
-
-### Focus Directives (Aug 2026)
-
-Time-bounded "focus directives" that bias the agent's analysis toward a theme
-(e.g. "crypto") with a decaying **soft** weight (a multiplier over baseline
-attention, never a hard filter). Admin-managed via a new **Directives** tab on
-the admin page (`app/admin/page.tsx` + `app/admin/directives-client.tsx`).
-
-- **Models:** `Directive` + `DirectiveEvent` (append-only audit log). `Directive`
-  has nullable `userId` (reserved for future per-user directives) and nullable
-  `themeId` FK → `Theme` (join for overlap views). `theme` string is the canonical
-  slug/name (free text; case-insensitive duplicate guard on active/paused).
-- **Logic:** `lib/directives.ts` — `effectiveWeight` (linear decay of the boost
-  portion to 1.0, or `none` = constant), `effectiveExpiry` (startedAt + ttlDays +
-  totalPausedSeconds), `sweepExpired` (lazy auto-expire on read).
-- **Admin API:** `GET/POST /api/admin/directives`, `GET/PATCH/DELETE
-  /api/admin/directives/[id]` (PATCH `action` = pause/resume/drop/extend, else
-  field edits). Admin-only via `requireAdmin()`.
-- **Agent read path:** `GET /api/directives/active` — Bearer `CROSS_SITE_API_KEY`
-  auth, returns active directives with `effectiveWeight` + `remainingDays`. Used by
-  the Hermes agent (thesis-signal-collector) to bias its search mesh. Postgres is
-  now the single source of truth (supersedes the old agent-side SQLite `theme` CLI).
-- **Watchdog endpoint:** `GET /api/directives/watchdog` — Bearer `CROSS_SITE_API_KEY`,
-  returns `expiringSoon` (active, ≤3d left) + `stalePaused` (paused >14d) for the
-  daily cron watchdog (`theme_directives_watchdog.py`).
-- **Pause semantics:** pause FREEZES the clock (weight→1.0, TTL stops); resume
-  restores the remaining window (totalPausedSeconds accrues on resume).
 
 ### Action Button Visibility Rules (Theme Detail Page)
 
