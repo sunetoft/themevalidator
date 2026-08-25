@@ -53,8 +53,15 @@ Copy `.env` (not committed) and fill in:
 | `FALKORDB_PORT` | FalkorDB port (6379) |
 | `FALKORDB_PASSWORD` | FalkorDB auth password |
 
-> ⚠️ GLM is a reasoning model — set `max_tokens` to 2000+ or responses come
-> back empty (reasoning tokens consume the budget).
+> ⚠️ **GLM is a reasoning model — MUST disable `thinking` or responses come back
+> empty.** `glm-5.1` is silently aliased to `glm-5.3` by Z.AI. Reasoning models emit
+> `reasoning_content` BEFORE `content`, and that reasoning consumes the SAME
+> `max_tokens` budget. On the large analyze prompt the reasoning can exceed
+> 16k tokens, so `content` comes back empty (`fullContent length: 0`, thesis stuck
+> in `status: analyzing` → `failed`). **Fix:** `lib/llm.ts` passes
+> `thinking: { type: "disabled" }` on every call (matching AudienceExperts). If you
+> ever remove that, analysis silently breaks. Raising `max_tokens` alone is NOT a
+> reliable fix.
 
 ## FalkorDB Graph Integration
 

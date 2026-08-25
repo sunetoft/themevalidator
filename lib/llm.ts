@@ -38,19 +38,28 @@ export async function chatComplete(
     maxTokens?: number;
     jsonMode?: boolean;
     temperature?: number;
+    /** Enable GLM reasoning/thinking mode (default: disabled). */
+    thinking?: boolean;
     /** Source of the request (e.g., 'web', 'cron', 'api') — defaults to 'web' */
     source?: string;
     /** Optional endpoint label for grouping (e.g., 'analyze', 'reanalyze', 'add-ticker') */
     endpoint?: string;
   } = {}
 ) {
-  const response = await client.chat.completions.create({
+  const params: Record<string, unknown> = {
     model: LLM_MODEL,
     messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     max_tokens: options.maxTokens ?? 4096,
     temperature: options.temperature ?? 0.7,
     ...(options.jsonMode ? { response_format: { type: "json_object" } } : {}),
-  });
+    // GLM reasoning models (glm-5.x) emit `reasoning_content` BEFORE `content`
+    // and that reasoning consumes the SAME max_tokens budget. On large prompts
+    // the reasoning exhausts the whole budget, so `content` comes back empty
+    // ("fullContent length: 0"). Disable thinking so the budget goes to actual
+    // output. (Matches the proven pattern in AudienceExperts lib/llm.ts.)
+    thinking: { type: options.thinking ? "enabled" : "disabled" },
+  };
+  const response = await client.chat.completions.create(params as any);
 
   // Log token usage to DB (fire-and-forget — don't block the response)
   const usage = response.usage;
@@ -97,17 +106,25 @@ export async function* chatStream(
     maxTokens?: number;
     jsonMode?: boolean;
     temperature?: number;
+    /** Enable GLM reasoning/thinking mode (default: disabled). */
+    thinking?: boolean;
     onReasoning?: (reasoningDelta: string) => void;
   } = {}
 ): AsyncGenerator<string, void, unknown> {
-  const stream = await client.chat.completions.create({
+  const stream: any = await client.chat.completions.create({
     model: LLM_MODEL,
     messages: messages as OpenAI.Chat.Completions.ChatCompletionMessageParam[],
     max_tokens: options.maxTokens ?? 4096,
     temperature: options.temperature ?? 0.7,
     stream: true,
     ...(options.jsonMode ? { response_format: { type: "json_object" } } : {}),
-  });
+    // GLM reasoning models (glm-5.x) emit `reasoning_content` BEFORE `content`
+    // and that reasoning consumes the SAME max_tokens budget. On large prompts
+    // the reasoning exhausts the whole budget, so `content` comes back empty
+    // ("fullContent length: 0"). Disable thinking so the budget goes to actual
+    // output. (Matches the proven pattern in AudienceExperts lib/llm.ts.)
+    thinking: { type: options.thinking ? "enabled" : "disabled" },
+  } as any);
 
   for await (const chunk of stream) {
     const delta = chunk.choices[0]?.delta as any;
