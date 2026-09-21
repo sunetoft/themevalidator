@@ -1,13 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff, ArrowLeft, ShieldCheck } from 'lucide-react'
+import { Zap, Mail, Lock, User, ArrowRight, Eye, EyeOff, ArrowLeft, ShieldCheck, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 
 type Mode = 'login' | 'signup' | 'forgot-password'
+
+/**
+ * NextAuth redirects here with ?error=<code> for any OAuth failure.
+ * Without this map users just see a bare login form and no explanation
+ * (the original "google auth does not work" report).
+ */
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  OAuthAccountNotLinked:
+    'An account with this email already exists. You originally signed up a different way — sign in with the method you used at signup, or continue with the same Google account.',
+  OAuthCallback:
+    'Google rejected the sign-in request. Try again, or use email + password.',
+  OAuthSignin: 'Could not start the sign-in flow. Please try again.',
+  OAuthCreateAccount:
+    'We could not create your account. Please try email + password instead.',
+  AccessDenied: 'Access denied. This account is not allowed to sign in.',
+  Configuration: 'Auth is misconfigured on our side. We have been notified.',
+  CredentialsSignin: 'Invalid email or password.',
+  SessionRequired: 'Please sign in to continue.',
+  default: 'Sign-in failed. Please try again.',
+}
 
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>('login')
@@ -18,7 +38,18 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false)
   const [forgotSent, setForgotSent] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
   const router = useRouter()
+
+  // Read ?error= from the URL without useSearchParams (keeps this page statically renderable).
+  useEffect(() => {
+    const code = new URLSearchParams(window.location.search).get('error')
+    if (code) {
+      setAuthError(AUTH_ERROR_MESSAGES[code] ?? AUTH_ERROR_MESSAGES.default)
+      // Strip the param so a refresh / provider toggle doesn't re-show a stale error.
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
 
   const isLogin = mode === 'login'
 
@@ -118,6 +149,24 @@ export default function AuthPage() {
 
         {/* Form card */}
         <div className="bg-card border border-border rounded-xl p-8" style={{ boxShadow: 'var(--shadow-lg)' }}>
+
+          {authError && (
+            <div className="mb-6 flex items-start gap-3 rounded-lg bg-amber-500/10 border border-amber-500/25 px-4 py-3">
+              <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+              <div className="text-sm">
+                <p className="text-amber-300 font-medium">Sign-in problem</p>
+                <p className="text-muted-foreground mt-0.5">{authError}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAuthError(null)}
+                className="ml-auto text-muted-foreground hover:text-foreground text-xs"
+                aria-label="Dismiss"
+              >
+                ✕
+              </button>
+            </div>
+          )}
 
           {mode === 'forgot-password' ? (
             /* ── Forgot Password Panel ── */

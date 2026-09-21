@@ -14,6 +14,12 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      // Users created via email/password signup have NO Account row. Without this,
+      // NextAuth's callback-handler (core/lib/callback-handler.js:152-158) finds the
+      // existing user by email, sees no matching provider account, and throws
+      // AccountNotLinkedError -> /auth?error=OAuthAccountNotLinked -> "Google auth doesn't work".
+      // Safe: Google signs its `email_verified` claim, so the email match is trustworthy.
+      allowDangerousEmailAccountLinking: true,
     }),
     BunnyStocksSsoProvider({
       issuer: process.env.SSO_PROVIDER_URL || "https://dashboard.bunnystocks.com",

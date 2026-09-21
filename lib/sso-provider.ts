@@ -54,6 +54,10 @@ export function BunnyStocksSsoProvider(options: SsoProviderOptions): any {
     type: "oauth",
     clientId,
     clientSecret,
+    // Same reasoning as the Google provider: pre-existing credentials users have no
+    // bunnystocks-sso Account row, so without this they hit OAuthAccountNotLinked.
+    // Safe: our own IdP only asserts emails it has itself authenticated.
+    allowDangerousEmailAccountLinking: true,
     client: {
       token_endpoint_auth_method: "client_secret_post",
     },
