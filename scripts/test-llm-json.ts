@@ -104,6 +104,8 @@ const FIXTURES: Array<[string, boolean, string?]> = [
   ['04-content-free-refusal.txt', false],        // 125-char refusal → recovery retry must kick in
   ['05-duplicated-block-opener.txt', true],      // duplicated "{\n  {" inside an array
   ['06-missing-opening-quote-on-key.txt', true], // ],risks":[  — unquoted key after comma
+  ['07-truncated-header-only.txt', false],       // salvage that only recovers title/description → retry
+  ['08-stray-value-without-key.txt', true],      // ,"microcap — placeholder",  — value in key position
 ]
 {
   const dir = new URL('./fixtures/glm/', import.meta.url)

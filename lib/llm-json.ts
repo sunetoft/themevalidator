@@ -140,6 +140,8 @@ function fuzzyRepair(s: string): string {
     .replace(/(["}\]0-9]|true|false|null)[ \t]*\n[ \t]*"/g, '$1,\n"')
     // missing OPENING quote on a key after a comma:  ],risks":[  →  ],"risks":[
     .replace(/,([A-Za-z_][A-Za-z0-9_]*)"\s*:/g, ',"$1":')
+    // stray value where a key belongs:  "marketCap":"$204M","microcap — placeholder","moatRating":4
+    .replace(/,\s*"[^"\n]{1,160}"\s*,\s*(?="[A-Za-z_][A-Za-z0-9_]{0,40}"\s*:)/g, ',')
     // duplicated block opener on its own line:  "},\n  {\n    {\n  "name": …  → drop one
     // (line-anchored so strings containing "{ {" are left alone)
     .replace(/(^|\n)([ \t]*)\{\s*\n([ \t]*)\{/g, '$1$2{')
@@ -198,9 +200,11 @@ function closeTruncated(s: string): string {
 
 function looksLikeAnalysis(o: any): boolean {
   if (!o || typeof o !== 'object' || Array.isArray(o)) return false
-  if (o.title && (o.stocks?.length || o.ecosystem || o.description)) return true
-  if (o.stocks?.length || o.ecosystem?.members?.length) return true
-  return false
+  // Must match isUsableAnalysis(): a repair that only salvages the header
+  // (title/description) without the stocks[] or ecosystem.members[] payload is
+  // NOT a usable analysis — the route would reject it anyway, so report it as a
+  // parse failure and let the recovery retry run.
+  return !!(o.title && (o.stocks?.length || o.ecosystem?.members?.length))
 }
 
 /** One full repair pass: structural escapes → control chars → trailing commas → fuzzy. */
