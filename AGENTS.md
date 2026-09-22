@@ -88,10 +88,17 @@ Observed shapes (real samples saved in `/tmp/ti-raw-*.txt` by the trials script)
   Never call bare `JSON.parse()` on an LLM response in this repo.
 - Call sites: `app/api/analyze/route.ts`, `app/api/theses/[id]/retry/route.ts`,
   `app/api/theses/[id]/add-ticker/route.ts`, `lib/reanalyze.ts`.
-- `/api/analyze` makes ONE recovery attempt (`endpoint: "analyze-recovery"`) with a
-  stricter nudge when the first response is unusable, before marking the thesis
-  `failed`. Keep that — it is the only cover for content-free refusals.
-- Diagnose any new shape with `explainLLMJsonParse(raw)` (returns a per-variant trace).
+- `/api/analyze` makes up to **TWO** recovery attempts when the streamed response is
+  unusable: attempt 1 re-asks for the schema, attempt 2 asks for a *compact* analysis
+  (max 6 companies, values < 25 words) because long hand-written JSON is what produces
+  the slips. Only if all three fail does the thesis go `failed`. Keep this.
+- The main prompt caps the basket at 8 companies and string values at ~40 words for the
+  same reason — do not remove those limits without re-measuring the usable rate.
+- A client disconnect (closed tab) during analysis stamps the thesis
+  `failed — "Analysis interrupted (page closed)"` via `request.signal` + a `settled`
+  guard, so no row is left stuck in `analyzing` forever.
+- Diagnose any new shape with `explainLLMJsonParse(raw)` (returns a per-variant trace)
+  and add the raw capture as a new `scripts/fixtures/glm/NN-*.txt` fixture.
 
 ## Smoke Tests
 

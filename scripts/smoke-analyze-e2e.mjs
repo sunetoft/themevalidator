@@ -15,6 +15,8 @@ const SCENARIO = arg('--scenario', 'both')
 const EMAIL = 'smoketest@stdigital.dk'
 const PASSWORD = 'SmokeTest!2026'
 const TIMEOUT_MS = Number(arg('--timeout', '300')) * 1000
+// Abort the request mid-flight after N seconds (tests the interrupted-analysis path).
+const ABORT_AFTER_MS = Number(arg('--abort-after', '0')) * 1000
 
 const TEXT_THESIS = `Uranium enrichment capacity is the real chokepoint of the nuclear renaissance, not mining.
 Western enrichment is dominated by one Russian state supplier; HALEU for advanced SMRs is in structural
@@ -86,6 +88,9 @@ async function runScenario(name, payload) {
 
   const ac = new AbortController()
   const timer = setTimeout(() => ac.abort(), TIMEOUT_MS)
+  const abortTimer = ABORT_AFTER_MS > 0
+    ? setTimeout(() => { console.log(`[${name}] aborting client after ${ABORT_AFTER_MS / 1000}s (interrupted-analysis test)`); ac.abort() }, ABORT_AFTER_MS)
+    : null
 
   try {
     const res = await fetch(`${BASE}/api/analyze`, {
@@ -131,6 +136,7 @@ async function runScenario(name, payload) {
     outcome = outcome ?? `FAIL:${e?.name}`
   } finally {
     clearTimeout(timer)
+    if (abortTimer) clearTimeout(abortTimer)
   }
 
   const secs = (Date.now() - t0) / 1000
