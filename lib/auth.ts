@@ -3,8 +3,52 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
+import path from "path";
 import { prisma } from "@/lib/prisma";
 import { BunnyStocksSsoProvider } from "@/lib/sso-provider";
+
+/**
+ * openid-client (used by NextAuth for every Google / OIDC callback) hard-codes a
+ * **3500ms cap with no retry** on all of its outgoing HTTP requests — see
+ * node_modules/openid-client/lib/helpers/request.js (`timeout: 3500`).
+ *
+ * The id_token/JWKS validation runs *inside* that budget during the callback. On a
+ * momentary slow DNS lookup or TLS handshake to Google the whole login fails with
+ * `OAUTH_CALLBACK_ERROR: outgoing request timed out after 3500ms` →
+ * /auth?error=OAuthCallback. That is what users see as "Google rejected the
+ * sign-in" — Google had actually already authenticated them and returned a code.
+ *
+ * openid-client 5.7.1 offers no per-client override: its `custom.http_options`
+ * symbol is dropped by the Client constructor, and `provider.client` metadata
+ * (which next-auth does spread) is not read for HTTP options. The request helper
+ * is also not reachable via the package `exports` map. So we resolve the module by
+ * absolute path and raise the process-wide default instead.
+ *
+ * Defensive by design: if openid-client is ever upgraded and these internals move,
+ * we warn and keep the stock 3500ms rather than breaking sign-in.
+ */
+const OAUTH_HTTP_TIMEOUT_MS = 15_000;
+try {
+  // `eval("require")` is deliberate: webpack rewrites literal `require(...)` calls and
+  // shims `module`'s createRequire (verified — the shimmed one has no `.resolve`), but it
+  // leaves an eval'd require alone. That hands us Node's real loader, so we (a) reach a
+  // file the package `exports` map hides, and (b) get the SAME module instance NextAuth
+  // already loaded — patching a second copy would be a silent no-op.
+  // eslint-disable-next-line no-eval
+  const nativeRequire = eval("require") as NodeRequire;
+  const requestHelpers = nativeRequire(
+    path.join(path.dirname(nativeRequire.resolve("openid-client")), "helpers", "request.js")
+  ) as { setDefaults?: (opts: { timeout: number }) => void };
+
+  if (typeof requestHelpers.setDefaults !== "function") {
+    console.warn("[auth] openid-client request helper has no setDefaults; keeping 3500ms default");
+  } else {
+    requestHelpers.setDefaults({ timeout: OAUTH_HTTP_TIMEOUT_MS });
+    console.log(`[auth] openid-client HTTP timeout raised to ${OAUTH_HTTP_TIMEOUT_MS}ms`);
+  }
+} catch (err) {
+  console.warn("[auth] could not raise openid-client HTTP timeout; keeping 3500ms default:", err);
+}
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? (() => { throw new Error('ADMIN_EMAIL is required') })();
 

@@ -13,12 +13,19 @@ type Mode = 'login' | 'signup' | 'forgot-password'
  * NextAuth redirects here with ?error=<code> for any OAuth failure.
  * Without this map users just see a bare login form and no explanation
  * (the original "google auth does not work" report).
+ *
+ * NOTE: by the time any of these fire, Google/our IdP has ALREADY authenticated the
+ * user and redirected back with a code — the failure is always on OUR callback
+ * handler. Never word these as "Google rejected you"; that sends everyone hunting
+ * for a problem in the Google Cloud Console that isn't there. See lib/auth.ts for
+ * the two real causes behind OAuthCallback (3500ms openid-client HTTP cap, and a
+ * state cookie that a second sign-in attempt has overwritten).
  */
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked:
     'An account with this email already exists. You originally signed up a different way — sign in with the method you used at signup, or continue with the same Google account.',
   OAuthCallback:
-    'Google rejected the sign-in request. Try again, or use email + password.',
+    'You signed in fine, but we could not finish the handshake with the provider. This usually means the request timed out, or a second sign-in was started in another tab (only one can be in flight at a time). Close any other sign-in tabs and try once more.',
   OAuthSignin: 'Could not start the sign-in flow. Please try again.',
   OAuthCreateAccount:
     'We could not create your account. Please try email + password instead.',
@@ -39,6 +46,7 @@ export default function AuthPage() {
   const [forgotSent, setForgotSent] = useState(false)
   const [forgotEmail, setForgotEmail] = useState('')
   const [authError, setAuthError] = useState<string | null>(null)
+  const [oauthLoading, setOauthLoading] = useState<string | null>(null)
   const router = useRouter()
 
   // Read ?error= from the URL without useSearchParams (keeps this page statically renderable).
@@ -50,6 +58,19 @@ export default function AuthPage() {
       window.history.replaceState({}, '', window.location.pathname)
     }
   }, [])
+
+  /**
+   * NextAuth stores ONE single-use `state` + PKCE-verifier cookie per sign-in attempt.
+   * Starting a second attempt overwrites that cookie, so whichever provider redirect
+   * lands first fails with "state mismatch" -> ?error=OAuthCallback. These buttons had
+   * no disabled/loading state, so clicking twice (or clicking again while the first
+   * redirect was still in flight) was a reproducible login failure. Serialise them.
+   */
+  const startOAuth = (provider: 'google' | 'bunnystocks-sso') => {
+    if (oauthLoading) return
+    setOauthLoading(provider)
+    void signIn(provider, { callbackUrl: '/dashboard' })
+  }
 
   const isLogin = mode === 'login'
 
@@ -258,8 +279,9 @@ export default function AuthPage() {
                 {/* Google OAuth */}
                 <button
                   type="button"
-                  onClick={() => signIn('google', { callbackUrl: '/dashboard' })}
-                  className="w-full py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all flex items-center justify-center gap-3"
+                  onClick={() => startOAuth('google')}
+                  disabled={oauthLoading !== null}
+                  className="w-full py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
@@ -267,17 +289,22 @@ export default function AuthPage() {
                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                   </svg>
-                  {isLogin ? 'Sign in with Google' : 'Sign up with Google'}
+                  {oauthLoading === 'google'
+                    ? 'Redirecting to Google…'
+                    : isLogin ? 'Sign in with Google' : 'Sign up with Google'}
                 </button>
 
                 {/* BunnyStocks SSO */}
                 <button
                   type="button"
-                  onClick={() => signIn('bunnystocks-sso', { callbackUrl: '/dashboard' })}
-                  className="w-full py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all flex items-center justify-center gap-3"
+                  onClick={() => startOAuth('bunnystocks-sso')}
+                  disabled={oauthLoading !== null}
+                  className="w-full py-2.5 border border-border rounded-lg text-sm font-medium hover:bg-muted/50 transition-all flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <ShieldCheck className="w-5 h-5 text-primary" />
-                  {isLogin ? 'Sign in with BunnyStocks' : 'Sign up with BunnyStocks'}
+                  {oauthLoading === 'bunnystocks-sso'
+                    ? 'Redirecting…'
+                    : isLogin ? 'Sign in with BunnyStocks' : 'Sign up with BunnyStocks'}
                 </button>
 
                 <div className="relative">
