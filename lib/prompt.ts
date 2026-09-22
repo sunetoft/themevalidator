@@ -124,4 +124,9 @@ INSTRUCTIONS:
 10. PRODUCT EVALUATOR: For each stock, identify flagship products and assess whether the company has genuine pricing power. Look for evidence in earnings data (margin expansion, ASP increases), segment growth highlights, and recent partnerships. A company with unique products in a bottlenecked market has STRONG pricing power. A commodity player in the same market has WEAK pricing power. Be specific — cite actual margin trends, revenue growth in key segments, and named partnerships.
 11. The productEvaluator.score reflects the AVERAGE pricing power strength across the basket. High score = most companies have unique products with demonstrated pricing power. Low score = mostly commodity players.
 
-Respond with raw JSON only. Do not include code blocks, markdown, or any other formatting.`;
+Respond with raw JSON only. Do not include code blocks, markdown, or any other formatting.
+
+OUTPUT FORMAT RULES (violating these breaks the pipeline):
+12. Return ONE flat JSON object that IS the analysis — the top-level keys must be exactly the schema keys above (title, themeName, description, sentiment, stocks, …).
+13. NEVER wrap your answer in an envelope object such as {"answer": "..."}, {"result": ...} or {"response": ...}, and never return the analysis as an escaped JSON string inside a field.
+14. Do NOT add any preface, disclaimer, caveat or closing note. Do NOT question or comment on the provided financial data — treat the FINANCIAL DATA block as authoritative ground truth and analyse it. The very first character of your response must be "{" and the last must be "}".`;

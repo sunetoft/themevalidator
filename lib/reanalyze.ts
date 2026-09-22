@@ -9,6 +9,7 @@
 
 import { prisma } from "@/lib/prisma";
 import { chatComplete } from "@/lib/llm";
+import { parseLLMJson } from "@/lib/llm-json";
 
 const REANALYZE_PROMPT = `You are updating an existing investment thesis analysis after a new stock was added to the theme.
 
@@ -38,7 +39,8 @@ Respond in JSON with the SAME structure as the input analysis, but updated:
 }
 
 IMPORTANT: Preserve ALL existing items. Only add or modify entries that should include the new stock. Update scores to reflect the complete picture.
-Respond with raw JSON only. No code blocks or markdown.`;
+Respond with raw JSON only. No code blocks or markdown.
+Return ONE flat JSON object with the schema keys at the top level. NEVER wrap the answer in {"answer": "..."} or any other envelope, and never return the analysis as an escaped JSON string inside a field. No preface, disclaimer or commentary — the first character must be "{" and the last "}".`;
 
 export async function reanalyzeThesis(
   thesisId: string,
@@ -102,7 +104,8 @@ Please update the analysis sections to incorporate the new stock. Preserve all e
 
     let updated: any;
     try {
-      updated = JSON.parse(content);
+      updated = parseLLMJson(content).data;
+      if (!updated) throw new Error("no payload");
     } catch {
       console.error("[reanalyze] Failed to parse LLM response");
       return { success: false, error: "Failed to parse re-analysis" };

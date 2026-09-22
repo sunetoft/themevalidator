@@ -10,6 +10,10 @@
     "db:migrate": "prisma migrate dev --name init",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
+    "test:llm-json": "tsx scripts/test-llm-json.ts",
+    "smoke:analyze": "node scripts/smoke-analyze-e2e.mjs",
+    "smoke:llm": "node --env-file=.env ./node_modules/.bin/tsx scripts/smoke-analyze.ts",
+    "smoke:trials": "node --env-file=.env ./node_modules/.bin/tsx scripts/smoke-llm-trials.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
@@ -79,6 +83,7 @@
     "postcss": "^8.4.49",
     "prisma": "^5.22.0",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.23.15",
     "typescript": "^5.6.3"
   }
 }

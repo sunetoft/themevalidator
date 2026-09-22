@@ -5,6 +5,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { chatComplete } from '@/lib/llm'
+import { parseLLMJson } from '@/lib/llm-json'
 import { reanalyzeThesis } from '@/lib/reanalyze'
 
 const TICKER_ANALYSIS_PROMPT = `You are an expert investment analyst. You are given an existing investment thesis and a new stock ticker to evaluate for inclusion in the theme.
@@ -80,7 +81,8 @@ export async function POST(
 
     let analysis: any
     try {
-      analysis = JSON.parse(content)
+      analysis = parseLLMJson(content).data
+      if (!analysis) throw new Error('no payload')
     } catch {
       return NextResponse.json({ error: 'Failed to parse analysis' }, { status: 500 })
     }

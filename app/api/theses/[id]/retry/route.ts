@@ -7,6 +7,7 @@ import { chatComplete, chatStream } from '@/lib/llm'
 import { fetchUrlViaJina, fetchMarketSignals, extractSearchTerms } from '@/lib/enrichment'
 import { fetchFinancialData, formatFinancialDataForLLM } from '@/lib/financial-data'
 import { ANALYSIS_PROMPT } from '@/lib/prompt'
+import { parseLLMJson, isUsableAnalysis } from '@/lib/llm-json'
 
 export const dynamic = 'force-dynamic'
 
@@ -134,17 +135,19 @@ export async function POST(
           }
         }
 
-        let finalResult: any = {}
-        try {
-          finalResult = JSON.parse(fullContent)
-        } catch (e) {
-          console.error('Retry: Failed to parse LLM JSON:', e, 'Content length:', fullContent.length, 'First 200 chars:', fullContent.substring(0, 200))
-          finalResult = { error: 'Failed to parse analysis result', raw: fullContent?.substring(0, 500) }
+        // Robust parse: GLM may wrap the payload in {"answer": "..."}, emit raw
+        // control chars, or truncate the object (see lib/llm-json.ts).
+        const retryParsed = parseLLMJson(fullContent)
+        let finalResult: any = retryParsed.data ?? {}
+        if (!retryParsed.ok) {
+          console.error('Retry: Failed to parse LLM JSON:', retryParsed.reason, 'Content length:', fullContent.length, 'First 200 chars:', fullContent.substring(0, 200))
+        } else if (retryParsed.repaired) {
+          console.warn(`Retry: recovered LLM JSON (envelope=${retryParsed.envelope ?? 'none'}, ${fullContent.length} chars)`)
         }
 
         // CRITICAL: Validate that the LLM actually returned usable content
-        if (!(finalResult?.stocks?.length || finalResult?.ecosystem?.members?.length) && !finalResult?.title) {
-          console.error('Retry: LLM returned empty or unusable response. fullContent length:', fullContent.length)
+        if (!isUsableAnalysis(finalResult)) {
+          console.error('Retry: LLM returned empty or unusable response. fullContent length:', fullContent.length, 'parseReason:', retryParsed.reason ?? 'n/a')
           await prisma.thesis.update({
             where: { id: thesisId },
             data: { status: 'failed', description: 'LLM analysis returned empty response. Please retry.' },

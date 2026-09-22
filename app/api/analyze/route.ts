@@ -9,6 +9,7 @@ import { chatComplete, chatStream } from '@/lib/llm'
 import { fetchUrlViaJina, fetchMarketSignals, extractSearchTerms } from '@/lib/enrichment'
 import { fetchFinancialData, formatFinancialDataForLLM } from '@/lib/financial-data'
 import { ANALYSIS_PROMPT } from '@/lib/prompt'
+import { parseLLMJson, isUsableAnalysis } from '@/lib/llm-json'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -99,6 +100,40 @@ export async function POST(request: NextRequest) {
     thesisText = body?.text ?? ''
     inputType = body?.inputType ?? 'text'
     sourceUrl = body?.url ?? ''
+
+    // URL mode over the JSON transport: the client only sends a placeholder
+    // string ("Analyze the investment thesis from this URL: …"), so we must
+    // fetch the real article here — otherwise the LLM analyses the placeholder.
+    if (inputType === 'url' && sourceUrl) {
+      try {
+        const jinaContent = await fetchUrlViaJina(sourceUrl)
+        if (jinaContent && jinaContent.length > 100) {
+          thesisText = jinaContent
+        } else {
+          const pageRes = await fetch(sourceUrl, {
+            signal: AbortSignal.timeout(10000),
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ThemeInvestorBot/1.0)' },
+          })
+          if (pageRes.ok) {
+            const html = await pageRes.text()
+            thesisText = html
+              .replace(/<script[\s\S]*?<\/script>/gi, '')
+              .replace(/<style[\s\S]*?<\/style>/gi, '')
+              .replace(/<[^>]+>/g, ' ')
+              .replace(/\s+/g, ' ')
+              .trim()
+              .substring(0, 12000)
+          }
+        }
+      } catch (fetchErr: any) {
+        console.error('URL fetch error (json transport):', fetchErr?.message)
+      }
+      if (!thesisText || thesisText.length < 100) {
+        // Keep whatever the client sent (usually the placeholder) so the request
+        // still produces something rather than a hard 400.
+        thesisText = `Analyze the investment thesis from this URL: ${sourceUrl}`
+      }
+    }
   }
 
   if (!thesisText && !sourceUrl) {
@@ -217,18 +252,56 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Parse and save the final result
-        let finalResult: any = {}
-        try {
-          finalResult = JSON.parse(fullContent)
-        } catch (e) {
-          console.error('Failed to parse LLM JSON:', e, 'Content length:', fullContent.length, 'First 200 chars:', fullContent.substring(0, 200))
-          finalResult = { error: 'Failed to parse analysis result', raw: fullContent?.substring(0, 500) }
+        // Parse and save the final result.
+        // GLM sometimes wraps the payload in {"answer": "..."} and/or emits raw
+        // control chars / truncated JSON — parseLLMJson repairs all of those.
+        const parsed = parseLLMJson(fullContent)
+        let finalResult: any = parsed.data ?? {}
+        if (!parsed.ok) {
+          console.error(
+            'Failed to parse LLM JSON:', parsed.reason, '| Content length:', fullContent.length,
+            '| First 200 chars:', fullContent.substring(0, 200)
+          )
+        } else if (parsed.repaired) {
+          console.warn(
+            `Recovered LLM JSON (envelope=${parsed.envelope ?? 'none'}, repaired, ${fullContent.length} chars)`
+          )
         }
 
-        // CRITICAL: Validate that the LLM actually returned usable content
-        if (!(finalResult?.stocks?.length || finalResult?.ecosystem?.members?.length) && !finalResult?.title) {
-          console.error('LLM returned empty or unusable response. fullContent length:', fullContent.length, 'deltaCount:', deltaCount)
+        // CRITICAL: Validate that the LLM actually returned usable content.
+        // If not, make ONE recovery attempt (non-streaming, stricter nudge)
+        // before giving up — GLM occasionally answers with an envelope/refusal
+        // instead of the schema, and a second sample almost always conforms.
+        if (!isUsableAnalysis(finalResult)) {
+          console.error(
+            'LLM returned empty or unusable response. fullContent length:', fullContent.length,
+            'deltaCount:', deltaCount, 'parseReason:', parsed.reason ?? 'n/a', '— attempting recovery'
+          )
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Re-running analysis (malformed response)...' })}\n\n`))
+          try {
+            const recovery = await chatComplete(
+              [
+                ...messages,
+                {
+                  role: 'user' as const,
+                  content: 'The previous response was not parseable. Answer again with ONE raw JSON object that starts with "{" and contains the top-level keys title, themeName, description, sentiment, stocks, ecosystem, financialHealth, technicalAnalysis, productEvaluator, themeETFs, externalFactors, bottlenecks, valuation, overallScore, keyTakeaways. No "answer" wrapper, no preface, no markdown.',
+                },
+              ],
+              { jsonMode: true, maxTokens: 16000, source: 'web', endpoint: 'analyze-recovery' }
+            )
+            const recovered = parseLLMJson(recovery)
+            if (isUsableAnalysis(recovered.data)) {
+              console.warn(`Recovery attempt succeeded (${recovery.length} chars, envelope=${recovered.envelope ?? 'none'})`)
+              finalResult = recovered.data
+            } else {
+              console.error('Recovery attempt also unusable:', recovered.reason, 'len:', recovery.length)
+            }
+          } catch (recErr: any) {
+            console.error('Recovery attempt threw:', recErr?.message)
+          }
+        }
+
+        if (!isUsableAnalysis(finalResult)) {
           await prisma.thesis.update({
             where: { id: thesis.id },
             data: {

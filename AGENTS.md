@@ -63,6 +63,50 @@ Copy `.env` (not committed) and fill in:
 > ever remove that, analysis silently breaks. Raising `max_tokens` alone is NOT a
 > reliable fix.
 
+## GLM Response Repair Layer (`lib/llm-json.ts`)
+
+`glm-5.x` frequently does NOT honour the requested JSON shape even with
+`response_format: { type: "json_object" }`. Measured on the analyze prompt:
+**~50% of responses needed repair or were unusable** (Sept 2026), which surfaced
+to users as *"Analysis produced no results — LLM returned empty response"*.
+Observed shapes (real samples saved in `/tmp/ti-raw-*.txt` by the trials script):
+
+| Shape | Example | Handled by |
+|-------|---------|-----------|
+| Envelope wrapper | `{"answer":"<analysis as JSON string>"}` | `parseLLMJson` unwraps `answer/result/response/…` |
+| Double-encoded envelope | `{"answer":"\n{\n  \"title\": …"}` | extra unescape round (`unescapeDoubleEncoded`) |
+| Preface / disclaimer inside the envelope | `"answer":"Note: I cannot verify the REAL-TIME FINANCIAL DATA…"` | prompt rules 12–14 + unwrap |
+| Raw control chars in strings | `Bad control character in string literal` | `escapeControlCharsInStrings` |
+| Truncated object | cut mid-array (max_tokens) | `balancedObject` + `closeTruncated` |
+| Duplicated colon | `"pricingPowerBenefit":": "medium"` | `fuzzyRepair` |
+| Duplicated block opener | `"},\n  {\n    {\n  "name": …` | `fuzzyRepair` |
+| Structural `\n` escapes | literal `\n` outside strings | `normalizeStructuralEscapes` |
+| Content-free refusal | `{"answer":"…I must end with a code block."}` | route-level recovery retry |
+
+**Rules:**
+- ALWAYS parse LLM output with `parseLLMJson()` / validate with `isUsableAnalysis()`.
+  Never call bare `JSON.parse()` on an LLM response in this repo.
+- Call sites: `app/api/analyze/route.ts`, `app/api/theses/[id]/retry/route.ts`,
+  `app/api/theses/[id]/add-ticker/route.ts`, `lib/reanalyze.ts`.
+- `/api/analyze` makes ONE recovery attempt (`endpoint: "analyze-recovery"`) with a
+  stricter nudge when the first response is unusable, before marking the thesis
+  `failed`. Keep that — it is the only cover for content-free refusals.
+- Diagnose any new shape with `explainLLMJsonParse(raw)` (returns a per-variant trace).
+
+## Smoke Tests
+
+```bash
+npm run test:llm-json      # 11 parser fixtures + replay of any /tmp/ti-raw-*.txt
+npm run smoke:analyze      # end-to-end SSE test of /api/analyze (text + url), needs the app running
+npm run smoke:llm          # single streaming LLM call through the real pipeline
+npm run smoke:trials       # N repeated real LLM calls, saves raw output + failure-rate summary
+```
+
+`npm run smoke:analyze` logs in as the throwaway user `smoketest@stdigital.dk`
+(password `SmokeTest!2026`, id `smoketest-user-001`) via the credentials provider
+and asserts the SSE stream reaches `status: completed`. Exit code = number of
+failed scenarios. **Analysis takes 100–140 s per run** — that is normal.
+
 ## FalkorDB Graph Integration
 
 Completed thesis analyses can be synced to FalkorDB as queryable property graphs.
