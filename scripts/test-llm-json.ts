@@ -95,7 +95,31 @@ console.log('llm-json parse tests')
   check('double-encoded envelope recovered', r.ok && r.envelope === 'answer' && isUsableAnalysis(r.data), r.reason ?? '')
 }
 
-// 12. replay any real captured raw samples
+// 12. REGRESSION FIXTURES — real GLM responses captured from /api/analyze
+//     (scripts/fixtures/glm/). Each asserts the exact outcome we need.
+const FIXTURES: Array<[string, boolean, string?]> = [
+  ['01-answer-note-then-flat-json.txt', true],   // {"answer":"Note: …","title":…} flat + extra key
+  ['02-double-encoded-broken-json.txt', true],   // double-encoded envelope + "key":": value" slip
+  ['03-pretty-json.txt', true],                  // clean pretty-printed JSON in an envelope
+  ['04-content-free-refusal.txt', false],        // 125-char refusal → recovery retry must kick in
+  ['05-duplicated-block-opener.txt', true],      // duplicated "{\n  {" inside an array
+]
+{
+  const dir = new URL('./fixtures/glm/', import.meta.url)
+  for (const [file, expectUsable, note] of FIXTURES) {
+    let raw = ''
+    try { raw = readFileSync(new URL(file, dir), 'utf8') } catch { console.log(`  skip ${file} (missing)`); continue }
+    const r = parseLLMJson(raw)
+    const usable = isUsableAnalysis(r.data)
+    check(
+      `fixture ${file} → ${expectUsable ? 'usable' : 'not usable'}${note ? ' (' + note + ')' : ''}`,
+      usable === expectUsable,
+      `got usable=${usable} reason=${r.reason ?? ''}`
+    )
+  }
+}
+
+// 13. replay any freshly captured raw samples from /tmp (trials script output)
 const dir = '/tmp'
 const raws = readdirSync(dir).filter(f => /^ti-raw-\d+\.txt$/.test(f))
 if (raws.length) {
