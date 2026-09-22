@@ -103,6 +103,7 @@ const FIXTURES: Array<[string, boolean, string?]> = [
   ['03-pretty-json.txt', true],                  // clean pretty-printed JSON in an envelope
   ['04-content-free-refusal.txt', false],        // 125-char refusal → recovery retry must kick in
   ['05-duplicated-block-opener.txt', true],      // duplicated "{\n  {" inside an array
+  ['06-missing-opening-quote-on-key.txt', true], // ],risks":[  — unquoted key after comma
 ]
 {
   const dir = new URL('./fixtures/glm/', import.meta.url)

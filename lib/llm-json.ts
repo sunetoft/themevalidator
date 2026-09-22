@@ -138,6 +138,8 @@ function fuzzyRepair(s: string): string {
     .replace(/"([^"\\\n]{0,80})"\s*:\s*(?=[}\]])/g, '"$1": null')
     // missing comma between properties:  "a": 1\n  "b": 2  →  "a": 1,\n  "b": 2
     .replace(/(["}\]0-9]|true|false|null)[ \t]*\n[ \t]*"/g, '$1,\n"')
+    // missing OPENING quote on a key after a comma:  ],risks":[  →  ],"risks":[
+    .replace(/,([A-Za-z_][A-Za-z0-9_]*)"\s*:/g, ',"$1":')
     // duplicated block opener on its own line:  "},\n  {\n    {\n  "name": …  → drop one
     // (line-anchored so strings containing "{ {" are left alone)
     .replace(/(^|\n)([ \t]*)\{\s*\n([ \t]*)\{/g, '$1$2{')
