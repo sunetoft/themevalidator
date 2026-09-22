@@ -196,6 +196,21 @@ export async function POST(request: NextRequest) {
     async start(controller) {
       const encoder = new TextEncoder()
 
+      // If the client goes away (closed tab / aborted request) the analysis is
+      // abandoned mid-flight; without this the row stays "analyzing" forever.
+      // `settled` guards against stamping a thesis that already completed.
+      let settled = false
+      request.signal.addEventListener('abort', () => {
+        if (settled) return
+        settled = true
+        prisma.thesis
+          .update({
+            where: { id: thesis.id },
+            data: { status: 'failed', description: 'Analysis interrupted (page closed). Please retry.' },
+          })
+          .catch(() => { /* best effort */ })
+      })
+
       try {
         // Send initial status
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Searching social media sentiment...', thesisId: thesis.id })}\n\n`))
@@ -306,6 +321,7 @@ export async function POST(request: NextRequest) {
         }
 
         if (!isUsableAnalysis(finalResult)) {
+          settled = true
           await prisma.thesis.update({
             where: { id: thesis.id },
             data: {
@@ -519,16 +535,20 @@ export async function POST(request: NextRequest) {
           result: finalResult,
           thesisId: thesis.id,
         })
+        settled = true
         controller.enqueue(encoder.encode(`data: ${finalData}\n\n`))
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))
       } catch (err: any) {
         console.error('Stream error:', err)
+        settled = true
         try {
           await prisma.thesis.update({ where: { id: thesis.id }, data: { status: 'failed' } })
         } catch (e: any) { /* ignore */ }
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'error', message: err?.message ?? 'Analysis failed' })}\n\n`))
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'error', message: err?.message ?? 'Analysis failed' })}\n\n`))
+        } catch { /* client already gone — abort handler already stamped the row */ }
       } finally {
-        controller.close()
+        try { controller.close() } catch { /* already closed */ }
       }
     },
   })
