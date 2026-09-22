@@ -112,7 +112,7 @@ Respond in JSON format with the following structure. The "stocks" array is the C
 }
 
 INSTRUCTIONS:
-1. Provide at least 5-8 companies in the "stocks" array with real publicly traded companies. Set instrumentType to "stock" for individual companies and "etf" for ETFs.
+1. Provide 5-8 companies in the "stocks" array with real publicly traded companies — never more than 8. Set instrumentType to "stock" for individual companies and "etf" for ETFs. Keep every string value under 40 words: this is a long JSON document and brevity keeps it valid.
 2. The "stocks" array is the SINGLE source of truth for per-company data. Every company gets ONE entry with ALL dimensions filled in — do not leave fields empty or omit them.
 3. For financial fields (earningsAssessment, healthGrade, keyMetric, etc.), use the REAL earnings data provided — reference actual EPS surprise percentages and growth rates.
 4. For technical fields (signal, trend, rsiInterpretation, keyLevels), use the REAL RSI, MA50, MA200, and trend data provided. Don't make up technical readings.

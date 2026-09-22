@@ -269,35 +269,39 @@ export async function POST(request: NextRequest) {
         }
 
         // CRITICAL: Validate that the LLM actually returned usable content.
-        // If not, make ONE recovery attempt (non-streaming, stricter nudge)
-        // before giving up — GLM occasionally answers with an envelope/refusal
-        // instead of the schema, and a second sample almost always conforms.
-        if (!isUsableAnalysis(finalResult)) {
-          console.error(
-            'LLM returned empty or unusable response. fullContent length:', fullContent.length,
-            'deltaCount:', deltaCount, 'parseReason:', parsed.reason ?? 'n/a', '— attempting recovery'
-          )
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Re-running analysis (malformed response)...' })}\n\n`))
+        // If not, make up to TWO recovery attempts before giving up — GLM
+        // occasionally answers with an envelope/refusal, or emits a syntax slip
+        // our repair layer cannot fix. The second attempt asks for a COMPACT
+        // analysis (fewer companies, terse fields) because long hand-written
+        // JSON is what produces those slips in the first place.
+        const RECOVERY_NUDGES = [
+          'The previous response was not parseable. Answer again with ONE raw JSON object that starts with "{" and contains the top-level keys title, themeName, description, sentiment, stocks, ecosystem, financialHealth, technicalAnalysis, productEvaluator, themeETFs, externalFactors, bottlenecks, valuation, overallScore, keyTakeaways. No "answer" wrapper, no preface, no markdown.',
+          'The previous two responses were not valid JSON. Respond with ONE compact raw JSON object only: keep the same schema and top-level keys, but include AT MOST 6 companies in "stocks" and keep every string value under 25 words. Emit valid JSON — no "answer" wrapper, no markdown, no commentary.',
+        ]
+        for (let attempt = 0; attempt < RECOVERY_NUDGES.length && !isUsableAnalysis(finalResult); attempt++) {
+          if (attempt === 0) {
+            console.error(
+              'LLM returned empty or unusable response. fullContent length:', fullContent.length,
+              'deltaCount:', deltaCount, 'parseReason:', parsed.reason ?? 'n/a', '— attempting recovery'
+            )
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Re-running analysis (malformed response)...' })}\n\n`))
+          } else {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'processing', message: 'Retrying with a shorter analysis...' })}\n\n`))
+          }
           try {
             const recovery = await chatComplete(
-              [
-                ...messages,
-                {
-                  role: 'user' as const,
-                  content: 'The previous response was not parseable. Answer again with ONE raw JSON object that starts with "{" and contains the top-level keys title, themeName, description, sentiment, stocks, ecosystem, financialHealth, technicalAnalysis, productEvaluator, themeETFs, externalFactors, bottlenecks, valuation, overallScore, keyTakeaways. No "answer" wrapper, no preface, no markdown.',
-                },
-              ],
-              { jsonMode: true, maxTokens: 16000, source: 'web', endpoint: 'analyze-recovery' }
+              [...messages, { role: 'user' as const, content: RECOVERY_NUDGES[attempt] }],
+              { jsonMode: true, maxTokens: 16000, source: 'web', endpoint: `analyze-recovery-${attempt + 1}` }
             )
             const recovered = parseLLMJson(recovery)
             if (isUsableAnalysis(recovered.data)) {
-              console.warn(`Recovery attempt succeeded (${recovery.length} chars, envelope=${recovered.envelope ?? 'none'})`)
+              console.warn(`Recovery attempt ${attempt + 1} succeeded (${recovery.length} chars, envelope=${recovered.envelope ?? 'none'})`)
               finalResult = recovered.data
             } else {
-              console.error('Recovery attempt also unusable:', recovered.reason, 'len:', recovery.length)
+              console.error(`Recovery attempt ${attempt + 1} also unusable:`, recovered.reason, 'len:', recovery.length)
             }
           } catch (recErr: any) {
-            console.error('Recovery attempt threw:', recErr?.message)
+            console.error(`Recovery attempt ${attempt + 1} threw:`, recErr?.message)
           }
         }
 
