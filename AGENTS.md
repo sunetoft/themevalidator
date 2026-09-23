@@ -100,6 +100,32 @@ Observed shapes (real samples saved in `/tmp/ti-raw-*.txt` by the trials script)
 - Diagnose any new shape with `explainLLMJsonParse(raw)` (returns a per-variant trace)
   and add the raw capture as a new `scripts/fixtures/glm/NN-*.txt` fixture.
 
+## Ticker chart modal (Vela) on the theme page — Sep 2026
+
+Every ticker in the **Ecosystem Stocks** card on `/themes/[id]` is a button that opens a
+full-screen LuxAlgo Vela chart modal (`components/vela-ticker-modal.tsx`), matching the
+SaxoAITrader `/charts` look: EMA **9/21/50/130** + expected-move overlay.
+
+| Piece | File | Role |
+|-------|------|------|
+| Chart data | `app/api/ticker-chart/route.ts` | Yahoo OHLCV bars + `expectedMoves`. Public (no session) — the theme page renders for signed-out users. Validates `^[A-Z0-9][A-Z0-9.\-^=]{0,14}$`, in-process caches (bars 60s, EM 5min), `HARD_BAR_CAP` 3000. |
+| Vela plumbing | `lib/vela-ticker.ts` | `createTickerProvider()` (`yahoo:` DataProvider), `addEmaStack()` (EMA_SET = 9/21/50/130), `clearOverlayLines()` / `drawExpectedMoves()`, `fetchChartPayload()`. `import type` only from `@luxalgo/vela` so it stays out of the SSR bundle. |
+| Modal | `components/vela-ticker-modal.tsx` | Headless `Vela` mount (dynamic import in an effect), timeframe tabs 15m/1H/4H/1D/1W/1M, "Expected move" toggle, EM footer table. |
+
+**Expected move convention (same as SaxoAITrader `/charts`):** `EM = 0.85 × (ATM call last
++ ATM put last)` for the next **3 future Friday** expiries, drawn as `spot ± EM` dotted
+`hline`s labelled `MM-DD +X.XX` / `MM-DD −X.XX`, plus a dashed `Spot X.XX` line.
+ATM strike = nearest strike to spot in each chain. Yahoo `lastPrice ?? bid` for the premium.
+
+**Re-mount on timeframe change** (`useEffect` keyed on `[ticker, timeframe, mountKey]`) rather
+than calling a setter — simpler and reliable for the headless `Vela` instance. The overlay
+effect (`[chartReady, payload, showEm]`) always clears-then-redraws so lines never accumulate.
+
+**Dependency notes:** `@luxalgo/vela@^0.6.17` added; `yahoo-finance2` was pinned at **v2.14
+but never used** — upgraded to **v4.0.2** to match SaxoAITrader, and `next.config.mjs` now
+externalizes it (`experimental.serverComponentsExternalPackages` + webpack `config.externals`)
+or `next build` fails on its Deno/test modules. Full pitfalls in the `vela-chart-integration` skill.
+
 ## Smoke Tests
 
 ```bash

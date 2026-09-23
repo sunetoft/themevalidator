@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -13,6 +13,7 @@ import {
 import { toast } from 'sonner'
 import ReactMarkdown from 'react-markdown'
 import StockChartModal from '@/components/stock-chart-modal'
+import { useLivePrices } from '@/lib/use-live-prices'
 
 /** Parse strategy markdown into individual stock sections + a summary section */
 function parseStrategyIntoSections(content: string): { stocks: Array<{ ticker: string; title: string; content: string }>; summary: string } {
@@ -262,6 +263,13 @@ export default function StrategyPage() {
   const [paperTradeName, setPaperTradeName] = useState('')
   const [paperTradeNameModal, setPaperTradeNameModal] = useState<string | null>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+
+  // Live prices — rendered from market data, never from a price the model wrote.
+  const basketTickers = useMemo(
+    () => (thesis?.basketMembers ?? []).map((m) => m.ticker),
+    [thesis]
+  )
+  const { prices: livePrices, asOf: livePricesAsOf } = useLivePrices(basketTickers)
 
   useEffect(() => {
     if (thesisId) {
@@ -643,12 +651,30 @@ export default function StrategyPage() {
                           {member.moatRating != null ? `${member.moatRating}/10` : 'N/A'}
                         </span>
                       </div>
-                      {member.marketCap && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs text-muted-foreground">Mkt Cap</span>
-                          <span className="text-xs font-medium font-mono">{member.marketCap}</span>
-                        </div>
-                      )}
+                      {/* Live price from market data. The `member.marketCap`
+                          value is LLM-recalled text from the analysis run and
+                          goes stale silently, so it is no longer shown here. */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground flex items-center gap-1">
+                          Price
+                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" title="Live market data" />
+                        </span>
+                        <span className="text-xs font-medium font-mono">
+                          {livePrices[ticker] ? (
+                            <>
+                              {livePrices[ticker].display}
+                              {livePrices[ticker].dayChangePct != null && (
+                                <span className={`ml-1 ${livePrices[ticker].dayChangePct! >= 0 ? 'text-primary' : 'text-red-400'}`}>
+                                  {livePrices[ticker].dayChangePct! >= 0 ? '+' : ''}
+                                  {livePrices[ticker].dayChangePct!.toFixed(2)}%
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </span>
+                      </div>
                       {member.peRatio && (
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-muted-foreground">P/E</span>
@@ -944,6 +970,17 @@ export default function StrategyPage() {
                                           >
                                             <h3 className="font-display font-semibold text-sm hover:underline">{stock.title}</h3>
                                           </button>
+                                          {livePrices[stock.ticker] && (
+                                            <p className="text-xs font-mono text-foreground/80 mt-0.5">
+                                              {livePrices[stock.ticker].display}
+                                              {livePrices[stock.ticker].dayChangePct != null && (
+                                                <span className={`ml-1.5 ${livePrices[stock.ticker].dayChangePct! >= 0 ? 'text-primary' : 'text-red-400'}`}>
+                                                  {livePrices[stock.ticker].dayChangePct! >= 0 ? '+' : ''}
+                                                  {livePrices[stock.ticker].dayChangePct!.toFixed(2)}%
+                                                </span>
+                                              )}
+                                            </p>
+                                          )}
                                           {member && (
                                             <p className="text-xs text-muted-foreground">
                                               {member.role && <span className="capitalize">{member.role}</span>}

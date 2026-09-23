@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getPositivlisteExposure, normalizeTicker } from "@/lib/etf-holdings";
 
 // GET /api/themes/[id] — theme detail with all child theses.
 // Public themes are open to everyone. Non-public themes (e.g. freshly created
@@ -189,6 +190,32 @@ export async function GET(
     }
   }
 
+  // Reverse-lookup the Danish positivliste (etf.stdigital.dk) for funds that
+  // actually hold the stocks named in these theses. The ETF app owns the
+  // holdings data; this is a cross-app call with a short in-process cache and
+  // fails soft (null → the card simply doesn't render).
+  const tickerSet = new Set<string>();
+  const addTicker = (raw: unknown) => {
+    if (typeof raw !== "string") return;
+    const t = normalizeTicker(raw);
+    if (t) tickerSet.add(t);
+  };
+  for (const t of visibleTheses) {
+    for (const m of ((t as any).basketMembers as any[]) ?? []) {
+      if ((m?.instrumentType ?? "stock") === "stock") addTicker(m?.ticker);
+    }
+    for (const m of (((t as any).ecosystemData as any)?.members as any[]) ?? []) {
+      if ((m?.instrumentType ?? "stock") === "stock") addTicker(m?.ticker);
+    }
+    for (const p of (((t as any).valuationData as any)?.topPicks as any[]) ?? []) {
+      addTicker(p?.ticker);
+    }
+  }
+
+  const positivlisteEtfs = await getPositivlisteExposure(Array.from(tickerSet), {
+    limit: 12,
+  });
+
   // Compute theme-level aggregated scores
   const scoreFields = [
     "overallScore",
@@ -215,6 +242,7 @@ export async function GET(
     ...themeMeta,
     theses: thesesWithAggregates,
     mergedEtfs: allEtfs,
+    positivlisteEtfs,
     themeScores,
   });
 }

@@ -14,11 +14,14 @@ const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   experimental: {
-    serverComponentsExternalPackages: ['@prisma/client'],
+    // yahoo-finance2 ships Deno/test-only modules (@gadicc/fetch-mock-cache/…) in its
+    // ESM build that webpack cannot resolve — keep it out of the bundle (same fix as
+    // HoldSell/OptionLookup; the package was unused here until the ticker chart route).
+    serverComponentsExternalPackages: ['@prisma/client', 'yahoo-finance2'],
     instrumentationHook: true,
   },
   webpack: (config) => {
-    config.externals = [...(config.externals || []), 'canvas', 'jsdom'];
+    config.externals = [...(config.externals || []), 'canvas', 'jsdom', 'yahoo-finance2'];
     return config;
   },
   async headers() {

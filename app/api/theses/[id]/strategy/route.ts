@@ -5,6 +5,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { chatStream } from '@/lib/llm'
+import { getLiveQuotes, formatLivePriceTable, fmtPrice, type LiveQuote } from '@/lib/live-quotes'
+import { sanitizeStrategyPrices } from '@/lib/strategy-price-guard'
 
 const STRATEGY_QUESTIONS = [
   {
@@ -104,7 +106,8 @@ function buildStrategyPrompt(
   members: any[],
   amount: number,
   riskProfile: string,
-  answers: Record<string, boolean>
+  answers: Record<string, boolean>,
+  quotes: Map<string, LiveQuote> = new Map()
 ): string {
   const eligibleMembers = members.filter((m) => m.ticker)
 
@@ -127,9 +130,21 @@ function buildStrategyPrompt(
   const stockList = eligibleMembers
     .map(
       (m) =>
-        `${m.ticker} (${m.companyName}) - Role: ${m.role ?? 'N/A'}, Moat: ${m.moatRating ?? 'N/A'}/10, Valuation: ${m.valuationStatus ?? 'N/A'}, Market Cap: ${m.marketCap ?? 'N/A'}`
+        `${m.ticker} (${m.companyName}) - Role: ${m.role ?? 'N/A'}, Moat: ${m.moatRating ?? 'N/A'}/10, Valuation: ${m.valuationStatus ?? 'N/A'}`
     )
     .join('\n')
+
+  // ── Live market data ──────────────────────────────────────────────
+  // Without this the model has NO price input and simply invents one from its
+  // training data (Aug 2026 incident: NVDA "~$135" vs a real $228.87).
+  const nameByTicker = new Map(
+    eligibleMembers.map((m) => [String(m.ticker).toUpperCase(), m.companyName])
+  )
+  const priceTable = formatLivePriceTable(
+    eligibleMembers.map((m) => String(m.ticker)),
+    quotes,
+    (t) => nameByTicker.get(t) ?? t
+  )
 
   return `You are a professional portfolio strategist. Create a detailed trading strategy for the following investment theme basket.
 
@@ -138,6 +153,20 @@ ${thesis.description}
 
 ## Stock Basket:
 ${stockList}
+
+## Live Market Data (AUTHORITATIVE — ${new Date().toISOString().slice(0, 10)})
+These are the ONLY valid share prices. They were fetched from market data moments ago.
+
+| Ticker | Live price |
+|--------|-----------|
+${priceTable}
+
+**Price rules — these override every other instruction:**
+1. Use ONLY the live prices above. NEVER recall, estimate, or approximate a price from memory.
+2. If a ticker is marked "UNKNOWN", do NOT state a dollar price for it — describe it in percentages only.
+3. Number of shares MUST equal the allocation divided by the live price above. Show your arithmetic mentally but keep the output clean.
+4. A price target / stop level must be expressed as a percentage change from the LIVE price, and any dollar price you give for it must be computed from the live price.
+5. Never write the words "approximate current price". The prices above are exact as of today.
 
 ## Investment Parameters:
 - Total Capital: $${amount.toLocaleString()}
@@ -153,7 +182,7 @@ ${answersSummary}
 For EACH stock in the basket, provide:
 1. **Allocation** - Dollar amount and percentage of total capital
 2. **Entry Strategy** - Specific entry plan (lump sum, DCA schedule, limit orders, etc.)
-3. **Position Sizing** - Number of shares (use approximate current prices)
+3. **Position Sizing** - Number of shares computed from the live price above
 4. **Stop-Loss Level** - Specific % or price level if applicable
 5. **Take-Profit Target** - Price target or % gain target
 6. **Monitoring Cadence** - How often to review this position
@@ -210,12 +239,27 @@ export async function POST(
     return NextResponse.json({ error: 'No stocks selected. Please select at least one ticker.' }, { status: 400 })
   }
 
+  // Fetch authoritative live prices BEFORE prompting. The model gets no other
+  // price input, so anything it produces without this is invented.
+  const basketTickers = basketMembers.map((m: any) => String(m.ticker))
+  let quotes = new Map<string, LiveQuote>()
+  try {
+    quotes = await getLiveQuotes(basketTickers)
+  } catch (err: any) {
+    console.error('Live quote fetch failed (continuing without prices):', err?.message)
+  }
+  const missing = basketTickers.filter((t) => !quotes.has(t.toUpperCase()))
+  if (missing.length > 0) {
+    console.warn(`[strategy] no live quote for: ${missing.join(', ')}`)
+  }
+
   const prompt = buildStrategyPrompt(
     thesis,
     basketMembers,
     amount,
     riskProfile,
-    answers ?? {}
+    answers ?? {},
+    quotes
   )
 
   // Save or update the strategy record
@@ -313,11 +357,24 @@ export async function POST(
             }
           }
 
+          // ── Price guard ──
+          // The prompt *asks* for live prices, but GLM obeys instructions
+          // unreliably. Rewrite anything that still drifted from the live quote
+          // BEFORE it is streamed to the client or persisted, so a wrong price
+          // can never reach the page even if the model ignored the rules.
+          const guarded = sanitizeStrategyPrices(fullContent, quotes)
+          const finalContent = guarded.text
+          if (guarded.corrections.length > 0) {
+            console.log(
+              `[strategy] price guard corrected ${guarded.corrections.length} amount(s) across ${guarded.affectedTickers.join(', ')}`
+            )
+          }
+
           // Save final strategy
           await prisma.tradeStrategy.update({
             where: { id: strategy.id },
             data: {
-              strategy: fullContent,
+              strategy: finalContent,
               status: 'completed',
             },
           })
@@ -327,7 +384,8 @@ export async function POST(
               `data: ${JSON.stringify({
                 status: 'completed',
                 strategyId: strategy.id,
-                content: fullContent,
+                content: finalContent,
+                priceCorrections: guarded.corrections,
               })}\n\n`
             )
           )
@@ -372,6 +430,16 @@ export async function POST(
       .filter((m: any) => m.ticker)
       .map((m: any) => ({ ticker: m.ticker, companyName: m.companyName, valuationStatus: m.valuationStatus })),
     excludedStocks: [],
+    // Live prices used for this strategy — the client renders them directly so
+    // the page never depends on a price echoed by the model.
+    livePrices: Array.from(quotes.values()).map((q) => ({
+      ticker: q.ticker,
+      price: q.price,
+      display: `$${fmtPrice(q.price)}`,
+      prevClose: q.prevClose,
+      dayChangePct: q.dayChangePct,
+      asOf: q.asOf,
+    })),
   })
 }
 

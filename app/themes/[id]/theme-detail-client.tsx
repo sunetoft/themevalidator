@@ -9,6 +9,9 @@ import ScoreRadarChart from '@/components/score-radar-chart'
 import SentimentChart from '@/components/sentiment-chart'
 import ThesisAlertsBanner from '@/components/thesis-alerts-banner'
 import ThemeETFsCard from '@/components/theme-etfs-card'
+import PositivlisteEtfsCard from '@/components/positivliste-etfs-card'
+import VelaTickerModal from '@/components/vela-ticker-modal'
+import type { PositivlisteExposure } from '@/lib/etf-holdings'
 import FinancialTechnicalSection from '@/components/financial-technical-section'
 import ProductEvaluatorSection from '@/components/product-evaluator-section'
 import {
@@ -109,6 +112,7 @@ interface ThemeApiResponse {
   name: string
   theses: ThesisDetail[]
   mergedEtfs: any[]
+  positivlisteEtfs: PositivlisteExposure | null
   themeScores: Record<string, number | null>
 }
 
@@ -149,6 +153,8 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
     valuation: true,
     ecosystem: true,
   })
+  // Ticker whose chart modal (Vela) is open — opened from the Ecosystem Stocks card.
+  const [chartTarget, setChartTarget] = useState<{ ticker: string; companyName?: string } | null>(null)
 
   const toggleSection = (key: string) => {
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }))
@@ -428,7 +434,26 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
                   {thesis.basketMembers.filter(m => m.instrumentType !== 'etf').map((member, i) => (
                     <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
                       <td className="py-2.5 pr-4 font-medium">{member.companyName ?? ''}</td>
-                      <td className="py-2.5 pr-4 font-mono text-primary">{member.ticker ?? '-'}</td>
+                      <td className="py-2.5 pr-4">
+                        {member.ticker ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setChartTarget({
+                                ticker: member.ticker as string,
+                                companyName: member.companyName ?? undefined,
+                              })
+                            }
+                            title={`Show ${member.ticker} chart — EMA 9/21/50/130 + expected move`}
+                            className="group inline-flex items-center gap-1.5 -mx-1.5 px-1.5 py-0.5 rounded font-mono text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            {member.ticker}
+                            <BarChart3 className="w-3.5 h-3.5 opacity-40 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        ) : (
+                          <span className="font-mono text-muted-foreground">-</span>
+                        )}
+                      </td>
                       <td className="py-2.5 pr-4">
                         <span className="px-1.5 py-0.5 bg-muted rounded text-xs capitalize">{member.role ?? ''}</span>
                       </td>
@@ -502,6 +527,15 @@ function ThesisAnalysisSection({ thesis }: { thesis: ThesisDetail }) {
             </div>
           )}
         </div>
+      )}
+
+      {/* Ticker chart modal (Vela — EMA 9/21/50/130 + expected move) */}
+      {chartTarget && (
+        <VelaTickerModal
+          ticker={chartTarget.ticker}
+          companyName={chartTarget.companyName}
+          onClose={() => setChartTarget(null)}
+        />
       )}
     </div>
   )
@@ -707,6 +741,11 @@ export default function ThemeDetailClient({
           <div className="mb-6">
             <ThemeETFsCard etfs={detail.mergedEtfs} />
           </div>
+        )}
+
+        {/* Positivliste ETFs (etf.stdigital.dk) that actually hold this thesis's basket */}
+        {!loading && (
+          <PositivlisteEtfsCard data={detail?.positivlisteEtfs} />
         )}
 
         {/* Thesis list */}
