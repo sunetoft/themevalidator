@@ -14,7 +14,8 @@ import { checkAndExecuteOrders, isNYSEOpen } from '@/lib/paper-trader'
  *    stock cache so charts load instantly for users.
  * 2. Runs order execution check (stop-loss / take-profit / limit fills).
  *
- * Auth: Bearer token (PAPER_TRADE_CRON_KEY) OR authenticated user.
+ * Auth: Bearer token (cron key) only — fail-closed.
+ * Returns 401 when the authorization header is missing or the key does not match.
  */
 
 interface YahooResult {

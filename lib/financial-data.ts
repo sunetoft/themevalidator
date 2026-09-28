@@ -15,7 +15,7 @@
 import { execFile } from 'child_process'
 import path from 'path'
 
-const PYTHON = '/Users/Shared/Hermes/venv/bin/python3'
+const PYTHON_BIN = process.env.PYTHON_BIN || '/Users/Shared/Hermes/venv/bin/python3'
 const SCRIPT = path.join(process.cwd(), 'scripts', 'fetch-financials.py')
 const FETCH_TIMEOUT_MS = 45_000 // 45s max for all tickers
 
@@ -133,7 +133,7 @@ export async function fetchFinancialData(
 
   return new Promise((resolve) => {
     const child = execFile(
-      PYTHON,
+      PYTHON_BIN,
       [SCRIPT],
       {
         timeout: FETCH_TIMEOUT_MS,

@@ -52,6 +52,7 @@ Copy `.env` (not committed) and fill in:
 | `FALKORDB_HOST` | FalkorDB graph database host |
 | `FALKORDB_PORT` | FalkorDB port (6379) |
 | `FALKORDB_PASSWORD` | FalkorDB auth password |
+| `PYTHON_BIN` | Path to Python 3 interpreter for yfinance fetches (default: `/Users/Shared/Hermes/venv/bin/python3`) |
 
 > ⚠️ **GLM is a reasoning model — MUST disable `thinking` or responses come back
 > empty.** `glm-5.1` is silently aliased to `glm-5.3` by Z.AI. Reasoning models emit
