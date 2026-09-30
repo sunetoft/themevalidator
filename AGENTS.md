@@ -49,9 +49,11 @@ Copy `.env` (not committed) and fill in:
 | `SSO_PROVIDER_URL` | `https://dashboard.bunnystocks.com` — BunnyStocks IdP URL |
 | `SSO_CLIENT_ID` | `themeinvestor` — This app's SSO client ID |
 | `SSO_CLIENT_SECRET` | Same value as `CROSS_SITE_API_KEY` — SSO shared secret |
-| `FALKORDB_HOST` | FalkorDB graph database host |
+| `FALKORDB_HOST` | FalkorDB graph database host (read-only for this app — see below) |
 | `FALKORDB_PORT` | FalkorDB port (6379) |
 | `FALKORDB_PASSWORD` | FalkorDB auth password |
+| `FALKORDB_GRAPH` | Target theme graph for exported seeds (default `grid`) |
+| `VALUE_CHAIN_ROOT` | Path to the `value-chain-trade` repo (default `/Users/sune/projects/value-chain-trade`) |
 | `PYTHON_BIN` | Path to Python 3 interpreter for yfinance fetches (default: `/Users/Shared/Hermes/venv/bin/python3`) |
 
 > ⚠️ **GLM is a reasoning model — MUST disable `thinking` or responses come back
@@ -141,29 +143,70 @@ npm run smoke:trials       # N repeated real LLM calls, saves raw output + failu
 and asserts the SSE stream reaches `status: completed`. Exit code = number of
 failed scenarios. **Analysis takes 100–140 s per run** — that is normal.
 
-## FalkorDB Graph Integration
+## Theme Graph Integration (`value-chain-trade`)
 
-Completed thesis analyses can be synced to FalkorDB as queryable property graphs.
+**This app does not write to FalkorDB.** It *exports a seed* that the
+`value-chain-trade` loader validates and merges. The repo lives at `VALUE_CHAIN_ROOT`
+(default `/Users/sune/projects/value-chain-trade`); its `docs/graph_writer_guide.md` is
+the contract.
 
-**How it works:**
-- `lib/falkordb.ts` — `syncThesisToGraph(thesis)` maps LLM analysis JSON to graph nodes:
-  - `ecosystem.members` → Company nodes with EXPOSED_TO (tier 1-3) relationships
-  - `bottlenecks.items` → Product nodes with bottleneck_status
-  - `valuation.topPicks` → Per-stock catalysts/risks
-  - `themeName` → Theme node with thesis summary
-- `POST /api/theses/[id]/sync-graph` — Admin-only API endpoint to trigger sync
-- `GET /api/theses/[id]/sync-graph` — Check sync status
+**Why the change (Sep 2026):** the previous `syncThesisToGraph()` built Cypher by string
+interpolation and wrote each theme as its own graph. A review of the graphs it produced
+found: **no `SUPPLIES_TO` edges at all** (so every supply-chain query returned nothing),
+no `country` on any Company, `''` instead of null, `confidence: medium` on every edge,
+`marketCap` string heuristics that put `market_cap_eur: 3.1` on Microsoft, bottleneck
+"products" that were market conditions (`NRC Licensing Backlog`), and themes split into
+isolated sentence-named graphs that hid their overlap. Those three graphs have been
+deleted.
 
-**Graph naming:** Theme name → slug (e.g., "AI Infrastructure" → `ai_infrastructure`).
-Each theme gets its own FalkorDB graph, queryable via Cypher.
+**How it works now:**
 
-**Usage from admin:**
+| Piece | Role |
+|---|---|
+| `lib/falkordb.ts` → `exportThesisToSeed(thesis)` | Maps the analysis to the seed schema and writes `seed_incoming/<theme_id>/{themes,products,companies,edges}.yaml` |
+| `scripts/resolve_tickers.py` (in the value-chain-trade repo) | Shelled out via `PYTHON_BIN` + `execFile` for `country`, currency, whole-EUR market cap — the LLM never supplies these, and `country` is required |
+| `scripts/load_seed.py --strict --preserve-existing` | Schema + reference validation, then the guide's checklist. Writes only if everything passes |
+| `seed_incoming/<theme_id>/VALIDATION.md` | Written every export: counts, blockers, notes, and the exact curator commands |
+| `POST /api/theses/[id]/sync-graph` | Triggers the export. Returns `status: loaded \| draft \| error` |
+| `GET /api/theses/[id]/sync-graph` | Adds `themeId`, `graph`, and `draft` (exists / status / problemList) |
+
+**Behavior contract:**
+- `graphSyncedAt` is stamped **only** when `status === 'loaded'`. A draft never marks the
+  thesis as synced — otherwise the button would claim a graph entry that does not exist.
+- A thesis analysis can essentially never pass the checklist on its own: it carries no
+  supplier→customer relationships, so there are no `SUPPLIES_TO` edges and every tier-2/3
+  company fails the "at least one outbound SUPPLIES_TO" rule. Exporting therefore normally
+  produces a **draft**, and that is the correct outcome — it stops the junk reaching the
+  graph and tells a curator exactly what to research.
+- Bottleneck items go to `Theme.key_risks`, **not** to Product nodes. A Product must be
+  something a company can invoice for.
+- Every emitted `EXPOSED_TO` is `confidence: low` with the thesis attributed as the source.
+  That is honest: it is an uncited LLM inference.
+- `roleToTier()` returns `null` for roles that are not a position in the chain
+  (competitor/customer/unclear); those members are skipped and listed in the notes. The old
+  code mapped `competitor` → tier 3.
+- A theme already owned by a curated `seed_<graph>/` is never overwritten.
+
+**Curation loop:**
 ```bash
-# Sync a single thesis
+cd $VALUE_CHAIN_ROOT
+# add real Products + supplies_to edges to seed_incoming/<theme_id>/, then:
+/Users/Shared/Hermes/venv/bin/python3 scripts/load_seed.py \
+  --graph grid --seed-dir seed_incoming/<theme_id> --strict
+/Users/Shared/Hermes/venv/bin/python3 scripts/verify_theme.py --graph grid --theme <theme_id>
+```
+
+**Graph routing:** themes that share a supply base belong in the *same* graph so company
+nodes are shared and multi-theme queries work (`grid` holds `grid_transformers` +
+`dc_power_800v`). Never create a graph per thesis.
+
+**Usage:**
+```bash
+# Export a thesis seed
 curl -X POST http://localhost:3001/api/theses/<thesis-id>/sync-graph \
   -H "Cookie: next-auth.session-token=<token>"
 
-# Check status
+# Check export status (includes the draft + its blockers)
 curl http://localhost:3001/api/theses/<thesis-id>/sync-graph \
   -H "Cookie: next-auth.session-token=<token>"
 ```

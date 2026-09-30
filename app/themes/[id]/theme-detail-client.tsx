@@ -588,9 +588,11 @@ export default function ThemeDetailClient({
     try {
       const res = await fetch(`/api/theses/${thesisId}/sync-graph`, { method: 'POST' })
       const data = await res.json()
-      if (res.ok && data.success) {
-        toast.success(`Synced ${data.companiesSynced} companies & ${data.productsSynced} products to GraphDB`)
-        // Update local state
+
+      if (res.ok && data.status === 'loaded') {
+        toast.success(
+          `Merged ${data.counts?.companies ?? 0} companies & ${data.counts?.exposedTo ?? 0} exposure edges into '${data.graph}'`
+        )
         setDetail(prev => {
           if (!prev) return prev
           return {
@@ -600,11 +602,20 @@ export default function ThemeDetailClient({
             ),
           }
         })
+      } else if (res.ok && data.status === 'draft') {
+        // The seed did not meet the graph-writer checklist, so it was written to disk
+        // instead of the graph. That is the intended outcome for an LLM analysis —
+        // it carries no supplier→customer edges and would leave the theme unusable.
+        const blockers: string[] = data.problems ?? []
+        toast.info(
+          `Draft written to seed_incoming/${data.themeId}/ — ${blockers.length} blocker${blockers.length === 1 ? '' : 's'} must be resolved before it can be merged${blockers[0] ? `: ${blockers[0]}` : ''}`,
+          { duration: 9000 }
+        )
       } else {
-        toast.error(data.error || 'Failed to sync to GraphDB')
+        toast.error(data.error || 'Failed to export theme seed')
       }
     } catch {
-      toast.error('Failed to sync to GraphDB')
+      toast.error('Failed to export theme seed')
     } finally {
       setSyncingGraphFor(null)
     }
@@ -838,41 +849,42 @@ export default function ThemeDetailClient({
                           {/* Full analysis sections */}
                           <ThesisAnalysisSection thesis={thesis} />
 
-                          {/* Action bar: Sync to GraphDB, Add Ticker, Create Strategy */}
+                          {/* Action bar: Export to GraphDB, Add Ticker, Create Strategy */}
                           <div className="mt-4 pt-4 border-t border-border/40 space-y-4">
-                            {/* Sync to GraphDB — admin only */}
+                            {/* Export theme seed to GraphDB — admin only */}
                             {isAdmin && thesis.status === 'completed' && (
-                              <div>
-                                <button
-                                  onClick={() => syncToGraph(thesis.id)}
-                                  disabled={syncingGraphFor === thesis.id}
-                                  className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
-                                    thesis.graphSyncedAt
-                                      ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
-                                      : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
-                                  }`}
-                                >
-                                  {syncingGraphFor === thesis.id ? (
-                                    <>
-                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                      Syncing…
-                                    </>
-                                  ) : thesis.graphSyncedAt ? (
-                                    <>
-                                      <CheckCircle2 className="w-3.5 h-3.5" />
-                                      In GraphDB — synced {new Date(thesis.graphSyncedAt).toLocaleDateString()}
-                                      <span className="text-muted-foreground/60 mx-1">·</span>
-                                      <Share2 className="w-3 h-3" />
-                                      Re-sync
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Share2 className="w-3.5 h-3.5" />
-                                      Sync to GraphDB
-                                    </>
-                                  )}
-                                </button>
-                              </div>
+                            <div>
+                            <button
+                              onClick={() => syncToGraph(thesis.id)}
+                              disabled={syncingGraphFor === thesis.id}
+                              title="Exports a seed (companies + exposure edges) for the value-chain-trade theme graph. Anything that does not pass the graph-writer checklist stays on disk as a draft."
+                              className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all disabled:opacity-50 ${
+                                thesis.graphSyncedAt
+                                  ? 'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20'
+                                  : 'bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground'
+                              }`}
+                            >
+                              {syncingGraphFor === thesis.id ? (
+                                <>
+                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                  Exporting…
+                                </>
+                              ) : thesis.graphSyncedAt ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5" />
+                                  In GraphDB — merged {new Date(thesis.graphSyncedAt).toLocaleDateString()}
+                                  <span className="text-muted-foreground/60 mx-1">·</span>
+                                  <Share2 className="w-3 h-3" />
+                                  Re-export
+                                </>
+                              ) : (
+                                <>
+                                  <Share2 className="w-3.5 h-3.5" />
+                                  Export to GraphDB
+                                </>
+                              )}
+                            </button>
+                          </div>
                             )}
 
                             {/* Add Ticker — admin only */}
