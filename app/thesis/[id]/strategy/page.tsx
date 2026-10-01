@@ -752,22 +752,9 @@ export default function StrategyPage() {
                   type="text"
                   value={strategyName}
                   onChange={(e) => setStrategyName(e.target.value)}
-                  placeholder="e.g. Aggressive AI Basket, Conservative Dividend Play"
-                  className="w-full px-4 py-3 bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
-                  maxLength={120}
-                />
-                <p className="text-xs text-muted-foreground/50 mt-1">Give your strategy a descriptive name to easily identify it later.</p>
-              </div>
-
-              {/* Strategy Name */}
-              <div className="bg-card border border-border rounded-xl p-5" style={{ boxShadow: 'var(--shadow-sm)' }}>
-                <label className="text-sm font-medium text-muted-foreground mb-3 block">STRATEGY NAME</label>
-                <input
-                  type="text"
-                  value={strategyName}
-                  onChange={(e) => setStrategyName(e.target.value)}
                   placeholder={`e.g. $${parseFloat(amount) ? parseFloat(amount).toLocaleString() : ''} ${riskProfile}-Risk on ${thesis?.title?.split(':')[0]?.trim() || thesis?.title || ''}`}
                   className="w-full px-4 py-3 bg-muted/50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 font-medium"
+                  maxLength={120}
                 />
                 <p className="text-xs text-muted-foreground mt-1.5">Give your strategy a descriptive name so you can identify it later.</p>
               </div>
