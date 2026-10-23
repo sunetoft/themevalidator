@@ -10,6 +10,7 @@ import { fetchUrlViaJina, fetchMarketSignals, extractSearchTerms } from '@/lib/e
 import { fetchFinancialData, formatFinancialDataForLLM } from '@/lib/financial-data'
 import { ANALYSIS_PROMPT } from '@/lib/prompt'
 import { parseLLMJson, isUsableAnalysis } from '@/lib/llm-json'
+import { generateTimelineForThesis } from '@/lib/timeline'
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions)
@@ -529,6 +530,15 @@ export async function POST(request: NextRequest) {
         } catch (dbErr: any) {
           console.error('DB save error:', dbErr?.message)
         }
+
+        // Ramp timeline ("when does this thesis play out?") is a second LLM call
+        // over forward guidance data. Deliberately NOT awaited — the analysis
+        // response must not wait on it. It writes Thesis.timelineData when done.
+        generateTimelineForThesis(thesis.id)
+          .then((r) => {
+            if (!r.ok) console.warn('[timeline] post-analysis generation failed:', r.error)
+          })
+          .catch((e: any) => console.error('[timeline] post-analysis threw:', e?.message))
 
         const finalData = JSON.stringify({
           status: 'completed',

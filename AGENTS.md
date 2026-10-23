@@ -348,6 +348,67 @@ side-by-side. Data served by `GET /api/themes/compare?ids=id1,id2,id3`.
 | `com.stdigital.themevalidator.thesis-monitor.cron` | Daily | Thesis alert monitoring |
 | Paper trade price checker (Hermes cron) | Every 15 min | Checks pending limit orders against live prices during NYSE hours |
 
+## Thesis Timeline (`/timeline`) — when does the thesis play out?
+
+Answers a different question from the scores: not "is this a good thesis?" but
+**"when does the demand show up in reported numbers?"** Every completing thesis
+gets an LLM ramp assessment automatically; `/timeline` puts all of them on one
+calendar-quarter axis.
+
+**Data backbone — `scripts/fetch-guidance.py`** (called by `lib/timeline.ts` via
+`PYTHON_BIN`, 90s timeout). yfinance only, no extra vendor:
+
+| Field | Source | Why it matters |
+|-------|--------|----------------|
+| `revenueEstimate` 0q/+1q/0y/+1y | `Ticker.revenue_estimate` | **Projected sales growth** — the primary ramp signal |
+| `epsEstimate` | `Ticker.earnings_estimate` | Whether growth is reaching the bottom line |
+| `quarters[]` + `marginTrend` | `Ticker.quarterly_income_stmt` | Reported revenue YoY, gross/operating margin, **YoY bps** |
+| `nextEarningsDate` | `info.earningsTimestampStart` | When guidance refreshes |
+
+> ⚠️ **Never use `Ticker.calendar` in a script here.** In yfinance 0.2.x it retries a
+> throttled quoteSummary endpoint indefinitely and hangs the whole batch (observed:
+> 2 hung processes, no output, 180s+). Use `info['earningsTimestampStart']` like
+> `fetch-financials.py` does, and keep `safe_num()` — Prisma Json rejects NaN/Infinity.
+
+**Assessment — `lib/timeline.ts` → `generateTimelineForThesis(thesisId)`**
+- Prompt weights **projected sales first, margin trajectory second**; a basket with
+  strong sales but contracting margins is `stalled` (pricing power has not arrived).
+- Output is quarter-anchored (`YYYY-QN`), never a date or a vague "H2 next year":
+  `rampWindowStart / rampQuarter / rampWindowEnd`, `verdict`
+  (`ramping|inflecting|early|stalled`), `confidence`, `guidanceRead`, `phases[]`,
+  `perTicker[]`, `confirmations[]`, `invalidations[]`, `dataGaps[]`.
+- Parsed with `parseLLMJson` + `normalizeTimeline` (validates the quarter regex,
+  clamps confidence, swaps a backwards window), retried once with a nudge. Two
+  failures store `{ error }` rather than throwing.
+- Persisted to `Thesis.timelineData` + `timelineUpdatedAt` after a **JSON round-trip**
+  (Prisma rejects `undefined` inside a Json payload).
+
+**Wiring.** `/api/analyze` and `/api/theses/[id]/retry` call it **fire-and-forget**
+right after the thesis row is saved — the analysis SSE response must not wait for a
+second LLM call. Regenerate manually with `POST /api/theses/[id]/timeline`
+(owner/admin), which is what the "Reassess" button uses.
+
+**Honesty rule:** yfinance gives analyst **consensus**, not company-issued guidance.
+The prompt requires quoting only numbers present in the data block and surfaces
+`guidanceSource` (`consensus` by default), and the UI footer prints
+"N/N tickers with forward sales · margin trend". Never claim management guidance
+the data does not contain.
+
+**Backfill** (existing theses have no timeline):
+```bash
+node --env-file=.env ./node_modules/.bin/tsx scripts/backfill-timelines.ts --limit 10
+node --env-file=.env ./node_modules/.bin/tsx scripts/backfill-timelines.ts --ids <id1>,<id2>
+node --env-file=.env ./node_modules/.bin/tsx scripts/show-timeline.ts <id>   # inspect result
+```
+
+**Pitfalls hit during the build:**
+- `npm run build` type-checks **every** file under `tsconfig` include, including
+  throwaway `scripts/*.ts` — a scratch debug script with `as any` junk silently
+  broke the production build. Delete scratch scripts before building.
+- Nav links are inside `{session && …}` in `components/header.tsx`, so `/timeline`
+  appears in the nav only for signed-in users (same as Themes/Strategies).
+
+
 ## Cross-App Dependencies
 
 - **TradeScouter** (`localhost:3013`): Syncs trader data, checks status

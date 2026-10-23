@@ -107,6 +107,8 @@ model Thesis {
   themeEtfs        Json?    // ETFs covering the theme: symbol, name, AUM, YTD, overlap
   productEvaluator Json?    // Product evaluator: per-stock pricing power, flagship products, partnerships
   stocksData       Json?    // Consolidated per-stock array (ecosystem + financial + technical + valuation + product evaluator)
+  timelineData     Json?    // Ramp timeline: when the thesis plays out, from forward guidance (sales growth + margin trend)
+  timelineUpdatedAt DateTime? // When timelineData was last generated
   graphSyncedAt    DateTime?       // When this thesis was last synced to FalkorDB graph
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt

@@ -8,6 +8,7 @@ import { fetchUrlViaJina, fetchMarketSignals, extractSearchTerms } from '@/lib/e
 import { fetchFinancialData, formatFinancialDataForLLM } from '@/lib/financial-data'
 import { ANALYSIS_PROMPT } from '@/lib/prompt'
 import { parseLLMJson, isUsableAnalysis } from '@/lib/llm-json'
+import { generateTimelineForThesis } from '@/lib/timeline'
 
 export const dynamic = 'force-dynamic'
 
@@ -325,6 +326,11 @@ export async function POST(
         } catch (dbErr: any) {
           console.error('DB save error:', dbErr?.message)
         }
+
+        // Regenerate the ramp timeline after a retry (fire-and-forget — see /api/analyze).
+        generateTimelineForThesis(thesisId).catch((e: any) =>
+          console.error('[timeline] post-retry threw:', e?.message),
+        )
 
         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: 'completed', result: finalResult, thesisId })}\n\n`))
         controller.enqueue(encoder.encode('data: [DONE]\n\n'))

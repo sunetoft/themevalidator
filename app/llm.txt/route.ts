@@ -17,6 +17,7 @@ export async function GET() {
 - [Themes](/themes) — public theme gallery with published analyses, search/filter
 - [Themes Detail](/themes/[id]) — theme overview + expandable thesis analysis cards (merged page; action buttons for sync-graph, create strategy, add ticker)
 - [Compare Themes](/compare) — select 2-3 themes for side-by-side comparison: scores, basket overlap, performance, sentiment radar charts
+- [Timeline](/timeline) — when each thesis is expected to play out: LLM ramp assessment per thesis (ramp window by calendar quarter, verdict ramping/inflecting/early/stalled, confidence, per-ticker forward sales growth + margin trend, confirmations/invalidations), plus a quarter-axis ramp map
 - [Analyze](/analyze) — create new investment thesis analysis; enter thesis description + stock tickers
 - [Paper Trades](/paper-trades) — paper trading dashboard; list all active/completed trades
 - [Admin](/admin) — admin panel (publish themes, sync to FalkorDB, manage users/strategies/paper trades)
@@ -43,6 +44,7 @@ export async function GET() {
 - [Theses List](/api/theses) — GET (auth); list user's theses; POST (auth); create new thesis
 - [Thesis CRUD](/api/theses/[id]) — GET (auth); get thesis detail; PATCH (auth); update thesis; DELETE (auth); delete thesis
 - [Retry Analysis](/api/theses/[id]/retry) — POST (auth); re-run LLM analysis on a thesis (kept in sync with /api/analyze prompt)
+- [Thesis Timeline](/api/theses/[id]/timeline) — GET; stored ramp-timeline assessment; POST (auth); regenerate it from fresh forward guidance data
 - [Thesis Strategy](/api/theses/[id]/strategy) — GET (auth); list strategies for thesis; POST (auth); generate prompt or strategy (streaming SSE when \`generateNow: true\`)
 - [Thesis Trade Strategy](/api/theses/[id]/trade-strategy) — GET (auth); get trade strategy for thesis
 - [Add Ticker](/api/theses/[id]/add-ticker) — POST (admin); add ticker to thesis basket
