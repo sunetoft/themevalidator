@@ -21,6 +21,7 @@ import {
   UserCircle2,
   ChevronDown,
   GitCompare,
+  CalendarClock,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -47,9 +48,13 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Links that render for signed-out visitors (the rest are app-only)
+  const PUBLIC_NAV = ["/themes", "/timeline", "/compare"];
+
   // Main nav links (content navigation)
   const navLinks = [
     { href: "/themes", label: "Themes", icon: Globe },
+    { href: "/timeline", label: "Timeline", icon: CalendarClock },
     { href: "/compare", label: "Compare", icon: GitCompare },
     { href: "/strategies", label: "Strategies", icon: ListChecks },
     { href: "/paper-trades", label: "Paper Trades", icon: TrendingUp },
@@ -86,37 +91,32 @@ export default function Header() {
             <span className="gold-text font-display">ThemeInvestor</span>
           </Link>
 
-          {session && (
-            <div className="hidden items-center gap-1 md:flex">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                return (
-                  <Link key={link.href} href={link.href} className={linkClass(link.href)}>
-                    <Icon className="h-4 w-4" />
-                    {link.label}
-                  </Link>
-                );
-              })}
-            </div>
-          )}
+          <div className="hidden items-center gap-1 md:flex">
+            {(session ? navLinks : navLinks.filter((l) => PUBLIC_NAV.includes(l.href))).map((link) => {
+              const Icon = link.icon;
+              return (
+                <Link key={link.href} href={link.href} className={linkClass(link.href)}>
+                  <Icon className="h-4 w-4" />
+                  {link.label}
+                </Link>
+              );
+            })}
+          </div>
         </div>
 
         {/* Right side actions */}
         <div className="hidden items-center gap-3 md:flex">
           {!session && (
             <>
-              <Link
-                href="/themes"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Toggle theme"
+                title="Toggle theme"
               >
-                Browse Themes
-              </Link>
-              <Link
-                href="/compare"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Compare
-              </Link>
+                <Sun className="h-4 w-4 dark:hidden" />
+                <Moon className="hidden h-4 w-4 dark:block" />
+              </button>
               <Link
                 href="/pricing"
                 className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -351,12 +351,22 @@ export default function Header() {
             <Link href="/themes" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
               Browse Themes
             </Link>
+            <Link href="/timeline" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
+              Timeline
+            </Link>
             <Link href="/compare" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
               Compare
             </Link>
             <Link href="/pricing" onClick={() => setMobileOpen(false)} className="text-sm font-medium text-foreground">
               Pricing
             </Link>
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="flex items-center gap-2 text-left text-sm font-medium text-foreground"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+              Toggle Theme
+            </button>
             <Link
               href="/auth"
               onClick={() => setMobileOpen(false)}
