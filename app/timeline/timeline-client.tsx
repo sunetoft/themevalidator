@@ -17,6 +17,7 @@ import {
   Target,
   ArrowUpRight,
   Info,
+  Layers,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -306,15 +307,34 @@ export default function TimelineClient({ rows, signedIn }: { rows: TimelineRow[]
                       Math.max(3, ((Math.min(end, axisStart + axisQuarters - 1) - start + 1) / axisQuarters) * 100),
                     )
                     return (
-                      <button
+                      <div
                         key={row.id}
+                        role="button"
+                        tabIndex={0}
                         onClick={() => setOpenId(openId === row.id ? null : row.id)}
-                        className="group flex w-full items-center rounded-lg py-1 pr-1 text-left transition-colors hover:bg-muted/50"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            setOpenId(openId === row.id ? null : row.id)
+                          }
+                        }}
+                        className="group flex w-full cursor-pointer items-center rounded-lg py-1 pr-1 text-left transition-colors hover:bg-muted/50"
                       >
                         <div className="w-[220px] shrink-0 pr-3">
                           <p className="truncate text-xs font-medium leading-tight">{row.title}</p>
                           <p className="truncate text-[10px] text-muted-foreground">
-                            {row.themeName ?? '—'}
+                            {row.themeId && row.themeName ? (
+                              <Link
+                                href={`/themes/${row.themeId}`}
+                                onClick={(e) => e.stopPropagation()}
+                                title={`Open theme: ${row.themeName}`}
+                                className="underline-offset-2 hover:text-accent hover:underline"
+                              >
+                                {row.themeName}
+                              </Link>
+                            ) : (
+                              row.themeName ?? '—'
+                            )}
                             {row.timeline.confidence !== undefined && ` · ${row.timeline.confidence}%`}
                           </p>
                         </div>
@@ -340,7 +360,7 @@ export default function TimelineClient({ rows, signedIn }: { rows: TimelineRow[]
                             </span>
                           </div>
                         </div>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
@@ -364,9 +384,17 @@ export default function TimelineClient({ rows, signedIn }: { rows: TimelineRow[]
                 className="overflow-hidden rounded-xl border border-border bg-card"
                 style={{ boxShadow: 'var(--shadow-sm)' }}
               >
-                <button
+                <div
+                  role="button"
+                  tabIndex={0}
                   onClick={() => setOpenId(open ? null : row.id)}
-                  className="flex w-full items-center gap-4 px-5 py-4 text-left"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setOpenId(open ? null : row.id)
+                    }
+                  }}
+                  className="flex w-full cursor-pointer items-center gap-4 px-5 py-4 text-left"
                 >
                   <span className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border', st.chip)}>
                     <Icon className="h-4 w-4" />
@@ -383,6 +411,18 @@ export default function TimelineClient({ rows, signedIn }: { rows: TimelineRow[]
                       </span>
                       {months !== null && months >= 0 && (
                         <span className="text-[11px] text-muted-foreground">{monthsLabel(months)}</span>
+                      )}
+                      {row.themeId && row.themeName && (
+                        <Link
+                          href={`/themes/${row.themeId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          title={`Open theme: ${row.themeName}`}
+                          className="inline-flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground underline-offset-2 transition-colors hover:border-accent/40 hover:text-accent"
+                        >
+                          <Layers className="h-3 w-3" />
+                          {row.themeName}
+                          <ArrowUpRight className="h-2.5 w-2.5" />
+                        </Link>
                       )}
                     </div>
                     <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{t.headline}</p>
@@ -404,7 +444,7 @@ export default function TimelineClient({ rows, signedIn }: { rows: TimelineRow[]
                   <ChevronDown
                     className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
                   />
-                </button>
+                </div>
 
                 <AnimatePresence initial={false}>
                   {open && (

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { motion, AnimatePresence } from 'framer-motion'
 import ScoreBadge from '@/components/score-badge'
@@ -19,7 +20,7 @@ import {
   Building2, MessageSquare, AlertTriangle, Lock, ShieldCheck,
   ChevronUp, ChevronDown, TrendingUp, TrendingDown, Minus,
   Zap, Layers, FileText, Plus, Loader2, Share2, CheckCircle2,
-  Sparkles
+  Sparkles, Globe
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { getScoreHex } from '@/lib/scores'
@@ -29,6 +30,7 @@ interface ThemeMeta {
   name: string
   slug: string
   description: string
+  isPublic: boolean
   publishedAt: string | null
   avgScore: number | null
   theses: Array<{
@@ -551,9 +553,15 @@ export default function ThemeDetailClient({
   theme: ThemeMeta
 }) {
   const { data: session } = useSession()
+  const router = useRouter()
   const [detail, setDetail] = useState<ThemeApiResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [expandedThesis, setExpandedThesis] = useState<string | null>(null)
+
+  // Publish state (admin only) — seeded from the server render, then kept local
+  const [isPublic, setIsPublic] = useState(Boolean(theme.isPublic))
+  const [publishedAt, setPublishedAt] = useState<string | null>(theme.publishedAt)
+  const [publishBusy, setPublishBusy] = useState(false)
 
   // Per-thesis action state
   const [tickerInputs, setTickerInputs] = useState<Record<string, string>>({})
@@ -668,6 +676,41 @@ export default function ThemeDetailClient({
     }
   }
 
+  /**
+   * Publish / unpublish this theme (admin only).
+   * Publishing cascades `isPublic` to every thesis in the theme, which is what
+   * makes them show up for signed-out visitors on /themes, /timeline and /compare.
+   */
+  async function togglePublish() {
+    const next = !isPublic
+    setPublishBusy(true)
+    try {
+      const res = await fetch(`/api/admin/themes/${themeId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isPublic: next }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        toast.error(data?.error ?? 'Failed to update visibility')
+        return
+      }
+      setIsPublic(next)
+      setPublishedAt(next ? (data?.publishedAt ?? new Date().toISOString()) : null)
+      toast.success(
+        next
+          ? `Published — ${theme.theses.length} thesis${theme.theses.length === 1 ? '' : 'es'} now public`
+          : 'Unpublished — hidden from anonymous visitors',
+      )
+      // Re-render the server component so /themes, /timeline and the sitemap agree
+      router.refresh()
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Failed to update visibility')
+    } finally {
+      setPublishBusy(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-[1200px] mx-auto px-4 py-8">
@@ -695,9 +738,40 @@ export default function ThemeDetailClient({
                 <span className="text-xs px-2.5 py-1 bg-primary/10 text-primary rounded-md font-medium">
                   {theme.theses.length} thesis{theme.theses.length !== 1 ? 'es' : ''}
                 </span>
-                {theme.publishedAt && (
+                {publishedAt && (
                   <span className="text-xs text-muted-foreground">
-                    Published {new Date(theme.publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                    Published {new Date(publishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                  </span>
+                )}
+                {isAdmin && (
+                  <button
+                    onClick={togglePublish}
+                    disabled={publishBusy}
+                    title={
+                      isPublic
+                        ? 'Hide this theme and all its theses from anonymous visitors'
+                        : 'Make this theme and all its theses visible on /themes, /timeline and /compare'
+                    }
+                    className={
+                      isPublic
+                        ? 'inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50'
+                        : 'inline-flex items-center gap-1.5 rounded-md bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground transition-colors hover:brightness-110 disabled:opacity-50'
+                    }
+                  >
+                    {publishBusy ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : isPublic ? (
+                      <Lock className="h-3 w-3" />
+                    ) : (
+                      <Globe className="h-3 w-3" />
+                    )}
+                    {publishBusy ? 'Saving…' : isPublic ? 'Unpublish' : 'Publish'}
+                  </button>
+                )}
+                {isPublic && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <Globe className="h-3 w-3" />
+                    Public
                   </span>
                 )}
               </div>

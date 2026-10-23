@@ -82,6 +82,7 @@ export default async function ThemeDetailPage({
       name: theme.name,
       slug: theme.slug,
       description: theme.description,
+      isPublic: theme.isPublic,
       publishedAt: theme.publishedAt,
       avgScore,
       theses,
